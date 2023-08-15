@@ -238,6 +238,15 @@ public static class SpamManager
         if (text == "kai") return true;
         if (text == "kaishi") return true;
 
+        if (text == "開") return true;
+        if (text == "開始") return true;
+        if (text == "快開") return true;
+        if (text == "開阿") return true;
+        if (text == "開啊") return true;
+        if (text == "ㄎㄞ ㄕˇ") return true;
+        if (text == "ㄎㄞㄕˇ") return true;
+        if (text == "ㄎㄞ") return true;
+
         //if (text.Length >= 3) return false;
         if (text.Contains("start")) return true;
         if (text.Contains("s t a r t")) return true;
