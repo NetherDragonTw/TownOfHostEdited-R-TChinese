@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Hazel;
 using TOHE.Roles.Impostor;
 using static TOHE.Options;
@@ -22,7 +23,7 @@ public static class PlagueBearer
 
     public static void SetupCustomOption()
     {
-        Options.SetupRoleOptions(Id, TabGroup.NeutralRoles, CustomRoles.PlagueBearer);
+        SetupSingleRoleOptions(Id, TabGroup.NeutralRoles, CustomRoles.PlagueBearer , 1, zeroOne: false);
         PlagueBearerCDOpt = FloatOptionItem.Create(Id + 10, "PlagueBearerCD", new(0f, 180f, 2.5f), 22.5f, TabGroup.NeutralRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.PlagueBearer])
                 .SetValueFormat(OptionFormat.Seconds);
         PestilenceCDOpt = FloatOptionItem.Create(Id + 11, "PestilenceCD", new(0f, 180f, 2.5f), 20f, TabGroup.NeutralRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.PlagueBearer])
@@ -40,7 +41,6 @@ public static class PlagueBearer
         PlagueBearerCD = new();
         PestilenceList = new();
     }
-
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
@@ -50,7 +50,7 @@ public static class PlagueBearer
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-    public static bool IsEnable => playerIdList.Count > 0;
+    public static bool IsEnable => playerIdList.Any();
 
     public static void SetKillCooldown(byte id) => Main.AllPlayerKillCooldown[id] = PlagueBearerCD[id];
     public static void SetKillCooldownPestilence(byte id) => Main.AllPlayerKillCooldown[id] = PestilenceCDOpt.GetFloat();
@@ -68,6 +68,7 @@ public static class PlagueBearer
         AmongUsClient.Instance.FinishRpcImmediately(writer);
     }
     public static void receiveRPC(MessageReader reader)
+
     {
         byte PlagueBearerId = reader.ReadByte();
         byte PlaguedId = reader.ReadByte();
@@ -116,6 +117,7 @@ public static class PlagueBearer
     {
         return Main.PuppeteerList.ContainsKey(killer.PlayerId) ||
             Main.TaglockedList.ContainsKey(killer.PlayerId) ||
+            Main.ShroudList.ContainsKey(killer.PlayerId) ||
             Main.CursedPlayers.ContainsValue(killer) ||
             Sniper.snipeTarget.ContainsValue(killer.PlayerId);
     }

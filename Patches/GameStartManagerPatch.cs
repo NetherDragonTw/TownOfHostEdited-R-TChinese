@@ -80,8 +80,15 @@ public class GameStartManagerPatch
         private static bool update = false;
         private static string currentText = "";
         public static float exitTimer = -1f;
+        private static float minWait, maxWait;
+        private static int minPlayer;
         public static void Prefix(GameStartManager __instance)
         {
+            minWait = Options.MinWaitAutoStart.GetFloat();
+            maxWait = Options.MaxWaitAutoStart.GetFloat();
+            minPlayer = Options.PlayerAutoStart.GetInt();
+            minWait = 600f - minWait * 60f;
+            maxWait = maxWait * 60f;
             // Lobby code
             if (DataManager.Settings.Gameplay.StreamerMode)
             {
@@ -102,10 +109,23 @@ public class GameStartManagerPatch
                 if (Main.updateTime >= 50)
                 {
                     Main.updateTime = 0;
-                    if (GameData.Instance.PlayerCount >= 14 && !GameStates.IsCountDown)
+                    if (((GameData.Instance.PlayerCount >= minPlayer && timer <= minWait) || timer <= maxWait) && !GameStates.IsCountDown)
                     {
+                        var invalidColor = Main.AllPlayerControls.Where(p => p.Data.DefaultOutfit.ColorId < 0 || Palette.PlayerColors.Length <= p.Data.DefaultOutfit.ColorId);
+
+                        if (invalidColor.Any())
+                        {
+                            Main.AllPlayerControls
+                                .Where(p => p.Data.DefaultOutfit.ColorId < 0 || Palette.PlayerColors.Length <= p.Data.DefaultOutfit.ColorId)
+                                .Do(p => AmongUsClient.Instance.KickPlayer(p.GetClientId(), false));
+
+                            Logger.SendInGame(GetString("Error.InvalidColorPreventStart"));
+                            var msg = GetString("Error.InvalidColor");
+                            msg += "\n" + string.Join(",", invalidColor.Select(p => $"{p.GetRealName()}"));
+                            Utils.SendMessage(msg);
+                        }
                         GameStartManager.Instance.startState = GameStartManager.StartingStates.Countdown;
-                        GameStartManager.Instance.countDownTimer = 10;
+                        GameStartManager.Instance.countDownTimer = Options.AutoStartTimer.GetInt();
                     }
                 }
             }
@@ -238,16 +258,16 @@ public class GameStartRandomMap
             Polus      = 2
             Dleks      = 3
             TheAirship = 4*/
-            if (Options.AddedTheSkeld.GetBool()) RandomMaps.Add(0);
-            if (Options.AddedMiraHQ.GetBool()) RandomMaps.Add(1);
-            if (Options.AddedPolus.GetBool()) RandomMaps.Add(2);
-            // if (Options.AddedDleks.GetBool()) RandomMaps.Add(3);
-            if (Options.AddedTheAirship.GetBool()) RandomMaps.Add(4);
+            if ((byte)rand.Next(1, 100) <= Options.SkeldChance.GetInt()) RandomMaps.Add(0);
+            if ((byte)rand.Next(1, 100) <= Options.MiraChance.GetInt()) RandomMaps.Add(1);
+            if ((byte)rand.Next(1, 100) <= Options.PolusChance.GetInt()) RandomMaps.Add(2);
+            // if (Options.AddedDleks.GetInt()) RandomMaps.Add(3);
+            if ((byte)rand.Next(1, 100) <= Options.AirshipChance.GetInt()) RandomMaps.Add(4);
 
-            if (RandomMaps.Count <= 0) return true;
-            var MapsId = RandomMaps[rand.Next(RandomMaps.Count)];
+            if (!RandomMaps.Any()) return true;
+
+            var MapsId = RandomMaps[0];
             Main.NormalOptions.MapId = MapsId;
-
         }
         return continueStart;
     }

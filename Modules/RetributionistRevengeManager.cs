@@ -4,6 +4,7 @@ using Rewired.UI.ControlMapper;
 using System;
 using System.Linq;
 using TOHE.Modules;
+using TOHE.Roles.Crewmate;
 using UnityEngine;
 using static TOHE.Translator;
 
@@ -39,7 +40,7 @@ public static class RetributionistRevengeManager
         }
         if (Options.CanOnlyRetributeWithTasksDone.GetBool())
         {
-            if (!pc.GetPlayerTaskState().IsTaskFinished && pc.Data.IsDead)
+            if (!pc.GetPlayerTaskState().IsTaskFinished && pc.Data.IsDead && !CopyCat.playerIdList.Contains(pc.PlayerId))
             {
                 if (!isUI) Utils.SendMessage(GetString("RetributionistKillDisable"), pc.PlayerId);
                 else pc.ShowPopUp(GetString("RetributionistKillDisable"));

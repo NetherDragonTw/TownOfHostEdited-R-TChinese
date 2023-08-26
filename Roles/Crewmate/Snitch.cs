@@ -43,7 +43,6 @@ public static class Snitch
     public static void Init()
     {
         playerIdList.Clear();
-        IsEnable = false;
 
         EnableTargetArrow = OptionEnableTargetArrow.GetBool();
         CanGetColoredArrow = OptionCanGetColoredArrow.GetBool();
@@ -61,13 +60,12 @@ public static class Snitch
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
-        IsEnable = true;
 
         IsExposed[playerId] = false;
         IsComplete[playerId] = false;
     }
 
-    public static bool IsEnable;
+    public static bool IsEnable => playerIdList.Any();
     public static bool IsThisRole(byte playerId) => playerIdList.Contains(playerId);
     private static bool GetExpose(PlayerControl pc)
     {
@@ -130,7 +128,7 @@ public static class Snitch
     /// <param name="target">スニッチの場合有効</param>
     /// <returns></returns>
     public static string GetWarningMark(PlayerControl seer, PlayerControl target)
-        => IsSnitchTarget(seer) && GetExpose(target) ? Utils.ColorString(RoleColor, "★") : "";
+        => IsSnitchTarget(seer) && GetExpose(target) ? Utils.ColorString(RoleColor, "⚠") : "";
 
     /// <summary>
     /// キラーからスニッチに対する矢印
@@ -146,7 +144,7 @@ public static class Snitch
         var exposedSnitch = playerIdList.Where(s => !Main.PlayerStates[s].IsDead && IsExposed[s]);
         if (exposedSnitch.Count() == 0) return "";
 
-        var warning = "★";
+        var warning = "⚠";
         if (EnableTargetArrow)
             warning += TargetArrow.GetArrows(seer, exposedSnitch.ToArray());
 

@@ -1,10 +1,10 @@
 using Hazel;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
+using TOHE.Roles.Crewmate;
 using static TOHE.Options;
 using static TOHE.Translator;
-using TOHE.Roles.Impostor;
-using TOHE.Roles.Crewmate;
 
 namespace TOHE.Roles.Neutral;
 
@@ -30,10 +30,10 @@ public static class Amnesiac
     public static void SetupCustomOption()
     {
         SetupRoleOptions(Id, TabGroup.NeutralRoles, CustomRoles.Amnesiac);
-        RememberCooldown = FloatOptionItem.Create(Id + 10, "RememberCooldown", new(0f, 180f, 2.5f), 25f, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Amnesiac])
-            .SetValueFormat(OptionFormat.Seconds);
-        RefugeeKillCD = FloatOptionItem.Create(Id + 11, "RefugeeKillCD", new(0f, 180f, 2.5f), 25f, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Amnesiac])
-            .SetValueFormat(OptionFormat.Seconds);
+    //    RememberCooldown = FloatOptionItem.Create(Id + 10, "RememberCooldown", new(0f, 180f, 2.5f), 25f, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Amnesiac])
+    //        .SetValueFormat(OptionFormat.Seconds);
+     /*   RefugeeKillCD = FloatOptionItem.Create(Id + 11, "RefugeeKillCD", new(0f, 180f, 2.5f), 25f, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Amnesiac])
+            .SetValueFormat(OptionFormat.Seconds); */
         IncompatibleNeutralMode = StringOptionItem.Create(Id + 12, "IncompatibleNeutralMode", amnesiacIncompatibleNeutralMode, 0, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Amnesiac]);
     }
     public static void Init()
@@ -50,7 +50,7 @@ public static class Amnesiac
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-    public static bool IsEnable => playerIdList.Count > 0;
+    public static bool IsEnable => playerIdList.Any();
 
     private static void SendRPC()
     {
@@ -277,7 +277,31 @@ public static class Amnesiac
             SendRPC();
             killer.RpcSetCustomRole(CustomRoles.Poisoner);
 
-            killer.Notify(Utils.ColorString(Utils.GetRoleColor(CustomRoles.Amnesiac), GetString("RememberedNeutralKiller")));
+            killer.Notify(Utils.ColorString(Utils.GetRoleColor(CustomRoles.Amnesiac), GetString("RememberedCoven")));
+            target.Notify(Utils.ColorString(Utils.GetRoleColor(CustomRoles.Amnesiac), GetString("AmnesiacRemembered")));
+            Utils.NotifyRoles();
+
+            Poisoner.Add(killer.PlayerId);
+
+            killer.ResetKillCooldown();
+            killer.SetKillCooldown();
+            killer.RpcGuardAndKill(target);
+            target.RpcGuardAndKill(killer);
+            target.RpcGuardAndKill(target);
+
+            Logger.Info("设置职业:" + target?.Data?.PlayerName + " = " + target.GetCustomRole().ToString() + " + " + CustomRoles.Soulless.ToString(), "Assign " + CustomRoles.Soulless.ToString());
+            Logger.Info($"{killer.GetNameWithRole()} : 剩余{RememberLimit}次魅惑机会", "Amnesiac");
+            return;
+        }
+        killer.Notify(Utils.ColorString(Utils.GetRoleColor(CustomRoles.Amnesiac), GetString("AmnesiacInvalidTarget")));
+        Logger.Info($"{killer.GetNameWithRole()} : 剩余{RememberLimit}次魅惑机会", "Amnesiac");
+        if (CanBeRememberedCoven(target))
+        {
+            RememberLimit--;
+            SendRPC();
+            killer.RpcSetCustomRole(target.GetCustomRole());
+
+            killer.Notify(Utils.ColorString(Utils.GetRoleColor(CustomRoles.Amnesiac), GetString("RememberedCoven")));
             target.Notify(Utils.ColorString(Utils.GetRoleColor(CustomRoles.Amnesiac), GetString("AmnesiacRemembered")));
             Utils.NotifyRoles();
 
@@ -325,7 +349,7 @@ public static class Amnesiac
             SendRPC();
             killer.RpcSetCustomRole(CustomRoles.HexMaster);
 
-            killer.Notify(Utils.ColorString(Utils.GetRoleColor(CustomRoles.Amnesiac), GetString("RememberedNeutralKiller")));
+            killer.Notify(Utils.ColorString(Utils.GetRoleColor(CustomRoles.Amnesiac), GetString("RememberedCoven")));
             target.Notify(Utils.ColorString(Utils.GetRoleColor(CustomRoles.Amnesiac), GetString("AmnesiacRemembered")));
             Utils.NotifyRoles();
 
@@ -405,6 +429,10 @@ public static class Amnesiac
     {
         return pc != null && (pc.Is(CustomRoles.BloodKnight));
     }
+    public static bool CanBeRememberedCoven(this PlayerControl pc)
+    {
+        return pc != null && (pc.GetCustomRole().IsCoven() && !pc.Is(CustomRoles.Jinx) && !pc.Is(CustomRoles.Poisoner) && !pc.Is(CustomRoles.HexMaster));
+    }
     public static bool KnowRole(PlayerControl player, PlayerControl target)
     {
         if (player.Is(CustomRoles.Infectious) && target.Is(CustomRoles.Infectious)) return true;
@@ -421,6 +449,9 @@ public static class Amnesiac
         if (player.Is(CustomRoles.Spiritcaller) && target.Is(CustomRoles.Spiritcaller)) return true;
         if (player.Is(CustomRoles.Succubus) && target.Is(CustomRoles.Succubus)) return true;
         if (player.Is(CustomRoles.Poisoner) && target.Is(CustomRoles.Poisoner)) return true;
+        if (player.Is(CustomRoles.Shroud) && target.Is(CustomRoles.Shroud)) return true;
+        if (player.Is(CustomRoles.Refugee) && target.Is(CustomRoles.Refugee)) return true;
+        if (player.Is(CustomRoles.Werewolf) && target.Is(CustomRoles.Werewolf)) return true;
         if (player.Is(CustomRoles.Refugee) && target.Is(CustomRoleTypes.Impostor)) return true;
         if (player.Is(CustomRoleTypes.Impostor) && target.Is(CustomRoles.Refugee)) return true;
         return false;

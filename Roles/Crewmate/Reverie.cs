@@ -1,10 +1,7 @@
-using Hazel;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using static TOHE.Options;
-using System.Linq;
-using TOHE.Roles.Impostor;
-using UnityEngine;
 
 namespace TOHE;
 
@@ -13,11 +10,11 @@ public static class Reverie
     private static readonly int Id = 1153;
     public static List<byte> playerIdList = new();
 
-    private static OptionItem DefaultKillCooldown;
-    private static OptionItem ReduceKillCooldown;
-    private static OptionItem MinKillCooldown;
+    public static OptionItem DefaultKillCooldown;
+    public static OptionItem ReduceKillCooldown;
+    public static OptionItem MinKillCooldown;
 
-    private static Dictionary<byte, float> NowCooldown;
+    public static Dictionary<byte, float> NowCooldown;
 
     public static void SetupCustomOption()
     {
@@ -43,7 +40,7 @@ public static class Reverie
                 if (!Main.ResetCamPlayerList.Contains(playerId))
                 Main.ResetCamPlayerList.Add(playerId);
     }
-    public static bool IsEnable => playerIdList.Count > 0;
+    public static bool IsEnable => playerIdList.Any();
     public static void SetKillCooldown(byte id) => Main.AllPlayerKillCooldown[id] = NowCooldown[id];
     public static void OnCheckMurder(PlayerControl killer)
     {

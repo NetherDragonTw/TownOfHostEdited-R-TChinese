@@ -1,5 +1,6 @@
 ﻿using Hazel;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using static TOHE.Options;
 using static TOHE.Translator;
@@ -42,7 +43,7 @@ public static class Deputy
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-    public static bool IsEnable => playerIdList.Count > 0;
+    public static bool IsEnable => playerIdList.Any();
 
     private static void SendRPC()
     {
@@ -58,6 +59,7 @@ public static class Deputy
     public static bool CanUseKillButton(PlayerControl player) => !player.Data.IsDead && HandcuffLimit >= 1;
     public static bool OnCheckMurder(PlayerControl killer, PlayerControl target)
     {
+        if (target.Is(CustomRoles.NSerialKiller)) return true;
         if (HandcuffLimit < 1) return false;
         if (CanBeHandcuffed(target))
         {

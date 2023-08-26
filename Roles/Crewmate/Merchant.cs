@@ -28,6 +28,8 @@ namespace TOHE.Roles.Crewmate
             CustomRoles.Necroview,
             CustomRoles.Onbound,
             CustomRoles.Glow,
+            CustomRoles.Burst,
+            CustomRoles.Sleuth,
             CustomRoles.Gravestone,
             CustomRoles.Autopsy,
             CustomRoles.Lucky,
@@ -52,7 +54,6 @@ namespace TOHE.Roles.Crewmate
         private static readonly List<CustomRoles> experimentalAddons = new List<CustomRoles>
         {
         //    CustomRoles.Flashman,
-            CustomRoles.Egoist,
             CustomRoles.Ntr, // Neptune
             CustomRoles.Guesser,
             CustomRoles.Fool
@@ -132,6 +133,8 @@ namespace TOHE.Roles.Crewmate
             bribedKiller.Add(playerId, new List<byte>());
         }
 
+        public static bool IsEnable => playerIdList.Any();
+
         public static void OnTaskFinished(PlayerControl player)
         {
             if (!player.IsAlive() || !player.Is(CustomRoles.Merchant) || (addonsSold[player.PlayerId] >= OptionMaxSell.GetInt()))
@@ -150,12 +153,14 @@ namespace TOHE.Roles.Crewmate
                     &&
                     !CustomRolesHelper.CheckAddonConfilct(addon, x)
                     &&
+                    (Cleanser.CleansedCanGetAddon.GetBool() || (!Cleanser.CleansedCanGetAddon.GetBool() && !x.Is(CustomRoles.Cleansed)))
+                    &&
                     (
                         (OptionCanTargetCrew.GetBool() && CustomRolesHelper.IsCrewmate(x.GetCustomRole())) 
                         ||
                         (OptionCanTargetImpostor.GetBool() && CustomRolesHelper.IsImpostor(x.GetCustomRole()))
                         ||
-                        (OptionCanTargetNeutral.GetBool() && (CustomRolesHelper.IsNeutral(x.GetCustomRole()) || CustomRolesHelper.IsNeutralKilling(x.GetCustomRole())))
+                        (OptionCanTargetNeutral.GetBool() && CustomRolesHelper.IsNeutral(x.GetCustomRole()) && !CustomRolesHelper.IsCoven(x.GetCustomRole()))
                     )
                 ).ToList();
 
@@ -175,8 +180,7 @@ namespace TOHE.Roles.Crewmate
                         CustomRolesHelper.IsImpostor(a.GetCustomRole())
                         ||
                         CustomRolesHelper.IsNeutral(a.GetCustomRole())
-                        ||
-                        CustomRolesHelper.IsNeutralKilling(a.GetCustomRole())
+                        
                     ).ToList();
                 }
 

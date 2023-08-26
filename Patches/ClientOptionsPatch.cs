@@ -8,11 +8,15 @@ namespace TOHE;
 public static class OptionsMenuBehaviourStartPatch
 {
     private static ClientOptionItem UnlockFPS;
+    private static ClientOptionItem ShowFPS;
+    private static ClientOptionItem EnableGM;
     private static ClientOptionItem AutoStart;
     private static ClientOptionItem ForceOwnLanguage;
     private static ClientOptionItem ForceOwnLanguageRoleName;
     private static ClientOptionItem EnableCustomButton;
     private static ClientOptionItem EnableCustomSoundEffect;
+    private static ClientOptionItem ShowTextOverlay;
+    private static ClientOptionItem ModeForSmallScreen;
     private static ClientOptionItem SwitchVanilla;
     //private static ClientOptionItem VersionCheat;
     //private static ClientOptionItem GodMode;
@@ -37,6 +41,14 @@ public static class OptionsMenuBehaviourStartPatch
                 Application.targetFrameRate = Main.UnlockFPS.Value ? 165 : 60;
                 Logger.SendInGame(string.Format(Translator.GetString("FPSSetTo"), Application.targetFrameRate));
             }
+        }
+        if (ShowFPS == null || ShowFPS.ToggleButton == null)
+        {
+            ShowFPS = ClientOptionItem.Create("ShowFPS", Main.ShowFPS, __instance);
+        }
+        if (EnableGM == null || EnableGM.ToggleButton == null)
+        {
+            EnableGM = ClientOptionItem.Create("GM", Main.EnableGM, __instance);
         }
         if (AutoStart == null || AutoStart.ToggleButton == null)
         {
@@ -65,6 +77,14 @@ public static class OptionsMenuBehaviourStartPatch
         if (EnableCustomSoundEffect == null || EnableCustomSoundEffect.ToggleButton == null)
         {
             EnableCustomSoundEffect = ClientOptionItem.Create("EnableCustomSoundEffect", Main.EnableCustomSoundEffect, __instance);
+        }
+        if (ShowTextOverlay == null || ShowTextOverlay.ToggleButton == null)
+        {
+            ShowTextOverlay = ClientOptionItem.Create("ShowTextOverlay", Main.ShowTextOverlay, __instance);
+        }
+        if (ModeForSmallScreen == null || ModeForSmallScreen.ToggleButton == null)
+        {
+            ModeForSmallScreen = ClientOptionItem.Create("ModeForSmallScreen", Main.ModeForSmallScreen, __instance);
         }
         if (SwitchVanilla == null || SwitchVanilla.ToggleButton == null)
         {

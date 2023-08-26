@@ -14,7 +14,7 @@ namespace TOHE;
 
 public static class TemplateManager
 {
-    private static readonly string TEMPLATE_FILE_PATH = "./TOHE_DATA/template.txt";
+    private static readonly string TEMPLATE_FILE_PATH = "./TOHE-DATA/template.txt";
     private static Dictionary<string, Func<string>> _replaceDictionary = new()
     {
         ["RoomCode"] = () => InnerNet.GameCode.IntToGameName(AmongUsClient.Instance.GameId),
@@ -50,7 +50,8 @@ public static class TemplateManager
         {
             try
             {
-                if (!Directory.Exists(@"TOHE_DATA")) Directory.CreateDirectory(@"TOHE_DATA");
+                if (!Directory.Exists(@"TOHE-DATA")) Directory.CreateDirectory(@"TOHE-DATA");
+                if (File.Exists(@"./TOHE-DATA/templates.txt")) File.Delete(@"./TOHE-DATA/templates.txt");
                 if (File.Exists(@"./template.txt")) File.Move(@"./template.txt", TEMPLATE_FILE_PATH);
                 else
                 {
@@ -105,7 +106,7 @@ public static class TemplateManager
                 if (tmp[0].ToLower() == str.ToLower()) sendList.Add(tmp.Skip(1).Join(delimiter: ":").Replace("\\n", "\n"));
             }
         }
-        if (sendList.Count == 0 && !noErr)
+        if (!sendList.Any() && !noErr)
         {
             if (playerId == 0xff)
                 HudManager.Instance.Chat.AddChat(PlayerControl.LocalPlayer, string.Format(GetString("Message.TemplateNotFoundHost"), str, tags.Join(delimiter: ", ")));

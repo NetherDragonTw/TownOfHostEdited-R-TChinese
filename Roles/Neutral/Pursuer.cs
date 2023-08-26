@@ -1,5 +1,6 @@
 ﻿using Hazel;
 using System.Collections.Generic;
+using System.Linq;
 using TOHE.Modules;
 using UnityEngine;
 
@@ -38,7 +39,7 @@ public static class Pursuer
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-    public static bool IsEnable => playerIdList.Count > 0;
+    public static bool IsEnable => playerIdList.Any();
     private static void SendRPC(byte playerId)
     {
         MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(PlayerControl.LocalPlayer.NetId, (byte)CustomRPC.SetPursuerSellLimit, SendOption.Reliable, -1);
@@ -119,6 +120,7 @@ public static class Pursuer
                     if (killer == null) continue;
                     CheckForEndVotingPatch.TryAddAfterMeetingDeathPlayers(PlayerState.DeathReason.Misfire, target.PlayerId);
                     target.SetRealKiller(Utils.GetPlayerById(pc));
+                    target.SetRealKiller(killer);
                     Logger.Info($"赝品商 {killer.GetRealName()} 的客户 {target.GetRealName()} 因不带刀自杀", "Pursuer");
                 }
             }

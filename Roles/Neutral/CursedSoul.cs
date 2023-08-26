@@ -1,5 +1,6 @@
 using Hazel;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using static TOHE.Options;
 using static TOHE.Translator;
@@ -44,7 +45,7 @@ public static class CursedSoul
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-    public static bool IsEnable => playerIdList.Count > 0;
+    public static bool IsEnable => playerIdList.Any();
 
     private static void SendRPC()
     {
@@ -60,6 +61,7 @@ public static class CursedSoul
     public static bool CanUseKillButton(PlayerControl player) => !player.Data.IsDead && CurseLimit >= 1;
     public static void OnCheckMurder(PlayerControl killer, PlayerControl target)
     {
+
         if (CurseLimit < 1) return;
         if (CanBeSoulless(target))
         {
@@ -74,8 +76,8 @@ public static class CursedSoul
             killer.ResetKillCooldown();
             killer.SetKillCooldown();
             killer.RpcGuardAndKill(target);
-            target.RpcGuardAndKill(killer);
-            target.RpcGuardAndKill(target);
+       //     target.RpcGuardAndKill(killer);
+       //     target.RpcGuardAndKill(target);
 
             Logger.Info("设置职业:" + target?.Data?.PlayerName + " = " + target.GetCustomRole().ToString() + " + " + CustomRoles.Soulless.ToString(), "Assign " + CustomRoles.Soulless.ToString());
             Logger.Info($"{killer.GetNameWithRole()} : 剩余{CurseLimit}次魅惑机会", "CursedSoul");
@@ -95,6 +97,6 @@ public static class CursedSoul
     public static bool CanBeSoulless(this PlayerControl pc)
     {
         return pc != null && (pc.GetCustomRole().IsCrewmate() || pc.GetCustomRole().IsImpostor() || 
-            (CanCurseNeutral.GetBool() && (pc.GetCustomRole().IsNeutral() || pc.GetCustomRole().IsNeutralKilling()))) && !pc.Is(CustomRoles.Soulless) && !pc.Is(CustomRoles.Admired) && !pc.Is(CustomRoles.Loyal);
+            (CanCurseNeutral.GetBool() && pc.GetCustomRole().IsNeutral())) && !pc.Is(CustomRoles.Soulless) && !pc.Is(CustomRoles.Admired) && !pc.Is(CustomRoles.Loyal);
     }
 }

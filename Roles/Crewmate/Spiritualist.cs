@@ -42,7 +42,7 @@ namespace TOHE.Roles.Crewmate
             LastGhostArrowShowTime.Add(playerId, 0);
             ShowGhostArrowUntil.Add(playerId, 0);
         }
-        public static bool IsEnable => playerIdList.Count > 0;
+        public static bool IsEnable => playerIdList.Any();
 
         private static bool ShowArrow(byte playerId)
         {
@@ -77,6 +77,8 @@ namespace TOHE.Roles.Crewmate
 
         public static void AfterMeetingTasks()
         {
+            if (!IsEnable) return;
+
             foreach (var spiritualist in playerIdList)
             {
                 PlayerControl player = Main.AllPlayerControls.FirstOrDefault(a => a.PlayerId == spiritualist);

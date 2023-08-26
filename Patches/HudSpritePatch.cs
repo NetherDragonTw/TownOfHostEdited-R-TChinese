@@ -17,6 +17,7 @@ public static class HudSpritePatch
     private static Sprite Kill;
     private static Sprite Ability;
     private static Sprite Vent;
+    private static Sprite Report;
     public static void Postfix(HudManager __instance)
     {
         var player = PlayerControl.LocalPlayer;
@@ -27,6 +28,7 @@ public static class HudSpritePatch
             Kill = null;
             Ability = null;
             Vent = null;
+            Report = null;
             return;
         }
 
@@ -35,10 +37,12 @@ public static class HudSpritePatch
         if (!Kill) Kill = __instance.KillButton.graphic.sprite;
         if (!Ability) Ability = __instance.AbilityButton.graphic.sprite;
         if (!Vent) Vent = __instance.ImpostorVentButton.graphic.sprite;
+        if (!Report) Report = __instance.ReportButton.graphic.sprite;
 
         Sprite newKillButton = Kill;
         Sprite newAbilityButton = Ability;
         Sprite newVentButton = Vent;
+        Sprite newReportButton = Report;
 
         if (!Main.EnableCustomButton.Value) goto EndOfSelectImg;
 
@@ -107,6 +111,33 @@ public static class HudSpritePatch
                 break;
             case CustomRoles.CursedSoul:
                 newKillButton = CustomButton.Get("Soul");
+                break;
+            case CustomRoles.Amnesiac:
+                newReportButton = CustomButton.Get("Amnesiac");
+                break;
+            case CustomRoles.Deputy:
+                newKillButton = CustomButton.Get("Deputy");
+                break;
+            case CustomRoles.TimeMaster:
+                newAbilityButton = CustomButton.Get("Time Master");
+                break;
+            case CustomRoles.Mario:
+                newAbilityButton = CustomButton.Get("Happy");
+                break;
+            case CustomRoles.Mayor:
+                newAbilityButton = CustomButton.Get("Collective");
+                break;
+            case CustomRoles.Sheriff:
+                newKillButton = CustomButton.Get("Kill");
+                break;
+            case CustomRoles.KB_Normal:
+                newKillButton = CustomButton.Get("Challenge");
+                break;
+            case CustomRoles.BountyHunter:
+                newKillButton = CustomButton.Get("Handoff");
+                break;
+            case CustomRoles.ImperiusCurse:
+                newKillButton = CustomButton.Get("Teleport");
                 break;
             case CustomRoles.Warlock:
                 if (!shapeshifting)

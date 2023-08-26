@@ -82,6 +82,8 @@ public class PlayerState
     }
     public void SetSubRole(CustomRoles role, bool AllReplace = false)
     {
+        if (role == CustomRoles.Cleansed)
+            AllReplace = true;
         if (AllReplace)
             SubRoles.ToArray().Do(role => SubRoles.Remove(role));
 
@@ -280,6 +282,10 @@ public class PlayerState
         Infected,
         Jinx,
         Hack,
+        Pirate,
+        Shrouded,
+        Mauled,
+        Drained,
 
         etc = -1,
     }
@@ -459,8 +465,16 @@ public class TaskState
                         pc.SetRealKiller(player);
                     }
                 }
-                CustomWinnerHolder.ResetAndSetWinner(CustomWinner.Workaholic); //爆破で勝利した人も勝利させる
-                CustomWinnerHolder.WinnerIds.Add(player.PlayerId);
+                if (!player.Is(CustomRoles.Admired))
+                {
+                    CustomWinnerHolder.ResetAndSetWinner(CustomWinner.Workaholic); //Workaholic
+                    CustomWinnerHolder.WinnerIds.Add(player.PlayerId);
+                }
+                if (player.Is(CustomRoles.Admired))
+                {
+                    CustomWinnerHolder.ResetAndSetWinner(CustomWinner.Crewmate); //Admired Workaholic
+                    CustomWinnerHolder.WinnerIds.Add(player.PlayerId);
+                }
             }
 
             Merchant.OnTaskFinished(player);
@@ -544,6 +558,7 @@ public static class GameStates
     public static bool IsInTask => InGame && !MeetingHud.Instance;
     public static bool IsMeeting => InGame && MeetingHud.Instance;
     public static bool IsVoting => IsMeeting && MeetingHud.Instance.state is MeetingHud.VoteStates.Voted or MeetingHud.VoteStates.NotVoted;
+    public static bool IsProceeding => IsMeeting && MeetingHud.Instance.state is MeetingHud.VoteStates.Proceeding;
     public static bool IsCountDown => GameStartManager.InstanceExists && GameStartManager.Instance.startState == GameStartManager.StartingStates.Countdown;
     /**********TOP ZOOM.cs***********/
     public static bool IsShip => ShipStatus.Instance != null;
