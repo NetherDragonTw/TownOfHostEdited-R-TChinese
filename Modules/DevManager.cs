@@ -75,8 +75,8 @@ public class DevUser
         return $"<size=1.2>{Utils.GradientColorText(startColor,endColor, t1)}</size>\r\n";
     }
 }
-    
-}
+
+
 /*    public string GetTag() => Color == "null" ? $"<size=1.7>{Tag}</size>\r\n" : $"<color={Color}><size=1.7>{(Tag == "#Dev" ? Translator.GetString("Developer") : Tag, 
     (Tag == "#OriginalDev" ? Translator.GetString("OriginalDeveloper") : Tag, 
     (Tag == "#MainDev" ? Translator.GetString("MainDeveloper") : Tag,
