@@ -26,6 +26,7 @@ public static class Occultist
     private static Color RoleColorSpell = Utils.GetRoleColor(CustomRoles.Impostor);
 
     public static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
 
     public static Dictionary<byte, bool> HexMode = new();
     public static Dictionary<byte, List<byte>> CursedPlayer = new();
@@ -44,10 +45,12 @@ public static class Occultist
         playerIdList = new();
         HexMode = new();
         CursedPlayer = new();
+        IsEnable = false;
     }
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
+        IsEnable = true;
         HexMode.Add(playerId, false);
         CursedPlayer.Add(playerId, new());
         NowSwitchTrigger = (SwitchTrigger)ModeSwitchAction.GetValue();
@@ -58,7 +61,6 @@ public static class Occultist
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-    public static bool IsEnable => playerIdList.Any();
     private static void SendRPC(bool doCurse, byte hexId, byte target = 255)
     {
         if (doCurse)
@@ -126,10 +128,7 @@ public static class Occultist
     {
         foreach (var occultist in playerIdList)
         {
-            if (CursedPlayer[occultist].Count != 0)
-            {
-                return true;
-            }
+            if (CursedPlayer[occultist].Count != 0) return true;
         }
         return false;
 
@@ -198,7 +197,7 @@ public static class Occultist
         foreach (var pc in Main.AllAlivePlayerControls)
         {
             var dic = CursedPlayer.Where(x => x.Value.Contains(pc.PlayerId));
-            if (dic.Count() == 0) continue;
+            if (!dic.Any()) continue;
             var whichId = dic.FirstOrDefault().Key;
             var occultist = Utils.GetPlayerById(whichId);
             if (occultist != null && occultist.IsAlive())
@@ -220,15 +219,15 @@ public static class Occultist
     public static string GetCursedMark(byte target, bool isMeeting)
     {
         
-        if (isMeeting && IsEnable && IsCursed(target))
+        if (isMeeting && IsCursed(target))
         {
             if (!CursesLookLikeSpells.GetBool())
             {
-            return Utils.ColorString(RoleColorCurse, "❖");
+                return Utils.ColorString(RoleColorCurse, "❖");
             }
             if (CursesLookLikeSpells.GetBool())
             {
-            return Utils.ColorString(RoleColorSpell, "†");
+                return Utils.ColorString(RoleColorSpell, "†");
             }
         }
         return "";
@@ -272,6 +271,7 @@ public static class Occultist
     public static void OnEnterVent(PlayerControl pc)
     {
         if (!AmongUsClient.Instance.AmHost) return;
+        if (!IsEnable) return;
         if (playerIdList.Contains(pc.PlayerId))
         {
             if (NowSwitchTrigger is SwitchTrigger.Vent)

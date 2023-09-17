@@ -1,6 +1,5 @@
 using Hazel;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using static TOHE.Options;
 using static TOHE.Translator;
@@ -11,6 +10,7 @@ public static class CursedSoul
 {
     private static readonly int Id = 10500;
     private static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
 
     public static OptionItem CurseCooldown;
     public static OptionItem CurseCooldownIncrese;
@@ -22,7 +22,7 @@ public static class CursedSoul
     public static void SetupCustomOption()
     {
         SetupSingleRoleOptions(Id, TabGroup.NeutralRoles, CustomRoles.CursedSoul, 1, zeroOne: false);
-        CurseCooldown = FloatOptionItem.Create(Id + 10, "CursedSoulCurseCooldown", new(0f, 990f, 2.5f), 30f, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.CursedSoul])
+        CurseCooldown = FloatOptionItem.Create(Id + 10, "CursedSoulCurseCooldown", new(0f, 180f, 2.5f), 30f, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.CursedSoul])
             .SetValueFormat(OptionFormat.Seconds);
         CurseCooldownIncrese = FloatOptionItem.Create(Id + 11, "CursedSoulCurseCooldownIncrese", new(0f, 180f, 2.5f), 10f, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.CursedSoul])
             .SetValueFormat(OptionFormat.Seconds);
@@ -35,17 +35,18 @@ public static class CursedSoul
     {
         playerIdList = new();
         CurseLimit = new();
+        IsEnable = false;
     }
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
         CurseLimit = CurseMax.GetInt();
+        IsEnable = true;
 
         if (!AmongUsClient.Instance.AmHost) return;
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-    public static bool IsEnable => playerIdList.Any();
 
     private static void SendRPC()
     {
@@ -75,7 +76,7 @@ public static class CursedSoul
 
             killer.ResetKillCooldown();
             killer.SetKillCooldown();
-            killer.RpcGuardAndKill(target);
+            if (!DisableShieldAnimations.GetBool()) killer.RpcGuardAndKill(target);
        //     target.RpcGuardAndKill(killer);
        //     target.RpcGuardAndKill(target);
 

@@ -22,6 +22,8 @@ public static class FireWorks
 
     private static readonly int Id = 2800;
     private static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
+
     private static OptionItem FireWorksCount;
     private static OptionItem FireWorksRadius;
     public static OptionItem CanKill;
@@ -36,7 +38,7 @@ public static class FireWorks
     public static void SetupCustomOption()
     {
         Options.SetupRoleOptions(Id, TabGroup.ImpostorRoles, CustomRoles.FireWorks);
-        FireWorksCount = IntegerOptionItem.Create(Id + 10, "FireWorksMaxCount", new(1, 99, 1), 3, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.FireWorks])
+        FireWorksCount = IntegerOptionItem.Create(Id + 10, "FireWorksMaxCount", new(1, 20, 1), 3, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.FireWorks])
             .SetValueFormat(OptionFormat.Pieces);
         FireWorksRadius = FloatOptionItem.Create(Id + 11, "FireWorksRadius", new(0.5f, 5f, 0.5f), 2f, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.FireWorks])
             .SetValueFormat(OptionFormat.Multiplier);
@@ -46,6 +48,7 @@ public static class FireWorks
     public static void Init()
     {
         playerIdList = new();
+        IsEnable = false;
         nowFireWorksCount = new();
         fireWorksPosition = new();
         state = new();
@@ -60,9 +63,8 @@ public static class FireWorks
         fireWorksPosition[playerId] = new();
         state[playerId] = FireWorksState.Initial;
         fireWorksBombKill[playerId] = 0;
+        IsEnable = true;
     }
-
-    public static bool IsEnable => playerIdList.Any();
 
     public static void SendRPC(byte playerId)
     {

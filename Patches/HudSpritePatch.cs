@@ -106,6 +106,12 @@ public static class HudSpritePatch
             case CustomRoles.Veteran:
                 newAbilityButton = CustomButton.Get("Veteran");
                 break;
+            case CustomRoles.Lighter:
+                newAbilityButton = CustomButton.Get("Lighter");
+                break;
+            case CustomRoles.Witness:
+                newKillButton = CustomButton.Get("Examine");
+                break;
             case CustomRoles.Pelican:
                 newKillButton = CustomButton.Get("Vulture");
                 break;
@@ -130,7 +136,7 @@ public static class HudSpritePatch
             case CustomRoles.Sheriff:
                 newKillButton = CustomButton.Get("Kill");
                 break;
-            case CustomRoles.KB_Normal:
+            case CustomRoles.Pirate:
                 newKillButton = CustomButton.Get("Challenge");
                 break;
             case CustomRoles.BountyHunter:
@@ -138,6 +144,30 @@ public static class HudSpritePatch
                 break;
             case CustomRoles.ImperiusCurse:
                 newKillButton = CustomButton.Get("Teleport");
+                break;
+            case CustomRoles.Swooper:
+                newAbilityButton = CustomButton.Get("invisible");
+                break;
+            case CustomRoles.Chameleon:
+                newAbilityButton = CustomButton.Get("invisible");
+                break;
+            case CustomRoles.Shade:
+                newAbilityButton = CustomButton.Get("invisible");
+                break;
+            case CustomRoles.Wraith:
+                newAbilityButton = CustomButton.Get("invisible");
+                break;
+            case CustomRoles.Escapee:
+                newAbilityButton = CustomButton.Get("abscond");
+                break;
+            case CustomRoles.Farseer:
+                newKillButton = CustomButton.Get("prophecies");
+                break;
+            case CustomRoles.Jailer:
+                newKillButton = CustomButton.Get("penitentiary");
+                break;
+            case CustomRoles.Agitater:
+                newKillButton = CustomButton.Get("bombshell");
                 break;
             case CustomRoles.Warlock:
                 if (!shapeshifting)
@@ -154,6 +184,7 @@ public static class HudSpritePatch
         __instance.KillButton.graphic.sprite = newKillButton;
         __instance.AbilityButton.graphic.sprite = newAbilityButton;
         __instance.ImpostorVentButton.graphic.sprite = newVentButton;
+        __instance.ReportButton.graphic.sprite = newReportButton;
 
     }
 }

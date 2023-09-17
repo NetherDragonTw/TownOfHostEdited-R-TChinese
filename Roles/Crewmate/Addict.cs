@@ -9,6 +9,7 @@ namespace TOHE.Roles.Crewmate
     {
         private static readonly int Id = 5200;
         private static List<byte> playerIdList = new();
+        public static bool IsEnable = false;
 
         public static OptionItem VentCooldown;
         public static OptionItem TimeLimit;
@@ -24,15 +25,15 @@ namespace TOHE.Roles.Crewmate
         public static void SetupCustomOption()
         {
             SetupRoleOptions(Id, TabGroup.CrewmateRoles, CustomRoles.Addict);
-            VentCooldown = FloatOptionItem.Create(Id + 11, "VentCooldown", new(5f, 999f, 1f), 40f, TabGroup.CrewmateRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Addict])
+            VentCooldown = FloatOptionItem.Create(Id + 11, "VentCooldown", new(5f, 180f, 1f), 40f, TabGroup.CrewmateRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Addict])
                 .SetValueFormat(OptionFormat.Seconds);
-            TimeLimit = FloatOptionItem.Create(Id + 12, "SerialKillerLimit", new(5f, 999f, 1f), 45f, TabGroup.CrewmateRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Addict])
+            TimeLimit = FloatOptionItem.Create(Id + 12, "SerialKillerLimit", new(5f, 180f, 1f), 45f, TabGroup.CrewmateRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Addict])
                 .SetValueFormat(OptionFormat.Seconds);
-            ImmortalTimeAfterVent = FloatOptionItem.Create(Id + 13, "AddictInvulnerbilityTimeAfterVent", new(5f, 999f, 1f), 10f, TabGroup.CrewmateRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Addict])
+            ImmortalTimeAfterVent = FloatOptionItem.Create(Id + 13, "AddictInvulnerbilityTimeAfterVent", new(0f, 60f, 1f), 10f, TabGroup.CrewmateRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Addict])
                 .SetValueFormat(OptionFormat.Seconds);
        //     SpeedWhileImmortal = FloatOptionItem.Create(Id + 14, "AddictSpeedWhileInvulnerble", new(0.25f, 5f, 0.25f), 1.75f, TabGroup.CrewmateRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Addict])
          //       .SetValueFormat(OptionFormat.Multiplier);
-            FreezeTimeAfterImmortal = FloatOptionItem.Create(Id + 15, "AddictFreezeTimeAfterInvulnerbility", new(5f, 999f, 1f), 10f, TabGroup.CrewmateRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Addict])
+            FreezeTimeAfterImmortal = FloatOptionItem.Create(Id + 15, "AddictFreezeTimeAfterInvulnerbility", new(0f, 60f, 1f), 10f, TabGroup.CrewmateRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Addict])
                 .SetValueFormat(OptionFormat.Seconds);
         }
         public static void Init()
@@ -41,6 +42,7 @@ namespace TOHE.Roles.Crewmate
             SuicideTimer = new();
             ImmortalTimer = new();
             DefaultSpeed = new();
+            IsEnable = false;
         }
         public static void Add(byte playerId)
         {
@@ -48,8 +50,8 @@ namespace TOHE.Roles.Crewmate
             SuicideTimer.TryAdd(playerId, -10f);
             ImmortalTimer.TryAdd(playerId, 420f);
             DefaultSpeed = Main.AllPlayerSpeed[playerId];
+            IsEnable = true;
         }
-        public static bool IsEnable => playerIdList.Any();
 
         public static bool IsImmortal(PlayerControl player) => player.Is(CustomRoles.Addict) && ImmortalTimer[player.PlayerId] <= ImmortalTimeAfterVent.GetFloat();
 
@@ -65,7 +67,8 @@ namespace TOHE.Roles.Crewmate
 
         public static void FixedUpdate(PlayerControl player)
         {
-            if (!GameStates.IsInTask || !IsEnable || !SuicideTimer.ContainsKey(player.PlayerId) || !player.IsAlive()) return;
+            if (!IsEnable) return;
+            if (!GameStates.IsInTask || !SuicideTimer.ContainsKey(player.PlayerId) || !player.IsAlive()) return;
 
             if (SuicideTimer[player.PlayerId] >= TimeLimit.GetFloat())
             {
@@ -94,6 +97,7 @@ namespace TOHE.Roles.Crewmate
 
         public static void OnEnterVent(PlayerControl pc, Vent vent) 
         {
+            if (!IsEnable) return;
             if (!pc.Is(CustomRoles.Addict)) return;
 
             SuicideTimer[pc.PlayerId] = 0f;
@@ -108,7 +112,7 @@ namespace TOHE.Roles.Crewmate
             Main.AllPlayerSpeed[addict.PlayerId] = Main.MinSpeed;
             ReportDeadBodyPatch.CanReport[addict.PlayerId] = false;
             addict.MarkDirtySettings();
-            new LateTask(() =>
+            _ = new LateTask(() =>
             {
                 Main.AllPlayerSpeed[addict.PlayerId] = DefaultSpeed;
                 ReportDeadBodyPatch.CanReport[addict.PlayerId] = true;

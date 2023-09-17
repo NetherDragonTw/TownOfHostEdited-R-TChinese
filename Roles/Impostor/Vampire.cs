@@ -23,6 +23,7 @@ public static class Vampire
 
     private static readonly int Id = 4500;
     private static readonly List<byte> PlayerIdList = new();
+    public static bool IsEnable = false;
 
     private static OptionItem OptionKillDelay;
     private static float KillDelay;
@@ -30,21 +31,22 @@ public static class Vampire
     public static void SetupCustomOption()
     {
         Options.SetupRoleOptions(Id, TabGroup.ImpostorRoles, CustomRoles.Vampire);
-        OptionKillDelay = FloatOptionItem.Create(Id + 10, "VampireKillDelay", new(1f, 999f, 1f), 10f, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Vampire])
+        OptionKillDelay = FloatOptionItem.Create(Id + 10, "VampireKillDelay", new(1f, 60f, 1f), 10f, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Vampire])
             .SetValueFormat(OptionFormat.Seconds);
     }
     public static void Init()
     {
         PlayerIdList.Clear();
         BittenPlayers.Clear();
+        IsEnable = false;
 
         KillDelay = OptionKillDelay.GetFloat();
     }
     public static void Add(byte playerId)
     {
         PlayerIdList.Add(playerId);
+        IsEnable = true;
     }
-    public static bool IsEnable => PlayerIdList.Any();
     public static bool IsThisRole(byte playerId) => PlayerIdList.Contains(playerId);
 
     public static bool OnCheckMurder(PlayerControl killer, PlayerControl target)
@@ -71,7 +73,8 @@ public static class Vampire
 
     public static void OnFixedUpdate(PlayerControl vampire)
     {
-        if (!AmongUsClient.Instance.AmHost || !GameStates.IsInTask) return;
+        if (!IsEnable) return;
+        if (!GameStates.IsInTask) return;
 
         var vampireID = vampire.PlayerId;
         if (!IsThisRole(vampire.PlayerId)) return;
@@ -110,6 +113,7 @@ public static class Vampire
                 if (target.Is(CustomRoles.Trapper))
                     vampire.TrapperKilled(target);
                 vampire.Notify(GetString("VampireTargetDead"));
+                vampire.SetKillCooldown();
             }
         }
         else

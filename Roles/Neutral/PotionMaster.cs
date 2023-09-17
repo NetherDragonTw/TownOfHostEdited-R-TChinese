@@ -13,6 +13,7 @@ namespace TOHE.Roles.Neutral
     {
         private static readonly int Id = 13000;
         public static List<byte> playerIdList = new();
+        public static bool IsEnable = false;
 
         private static OptionItem KillCooldown;
         private static OptionItem RitualMaxCount;
@@ -25,25 +26,28 @@ namespace TOHE.Roles.Neutral
 
         public static void SetupCustomOption()
         {
-        SetupSingleRoleOptions(Id, TabGroup.NeutralRoles, CustomRoles.PotionMaster, 1, zeroOne: false);
-            KillCooldown = FloatOptionItem.Create(Id + 10, "KillCooldown", new(0f, 180f, 2.5f), 30f, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.PotionMaster])
+        SetupSingleRoleOptions(Id, TabGroup.CovenRoles, CustomRoles.PotionMaster, 1, zeroOne: false);
+            KillCooldown = FloatOptionItem.Create(Id + 14, "KillCooldown", new(0f, 180f, 2.5f), 20f, TabGroup.CovenRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.PotionMaster])
                 .SetValueFormat(OptionFormat.Seconds);
-            RitualMaxCount = IntegerOptionItem.Create(Id + 11, "RitualMaxCount", new(1, 15, 1), 5, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.PotionMaster])
+            RitualMaxCount = IntegerOptionItem.Create(Id + 11, "RitualMaxCount", new(1, 15, 1), 5, TabGroup.CovenRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.PotionMaster])
                 .SetValueFormat(OptionFormat.Times);
-        CanVent = BooleanOptionItem.Create(Id + 12, "CanVent", true, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.PotionMaster]);
-    //    HasImpostorVision = BooleanOptionItem.Create(Id + 13, "ImpostorVision", true, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.PotionMaster]);
+        CanVent = BooleanOptionItem.Create(Id + 12, "CanVent", true, TabGroup.CovenRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.PotionMaster]);
+    //    HasImpostorVision = BooleanOptionItem.Create(Id + 13, "ImpostorVision", true, TabGroup.CovenRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.PotionMaster]);
         }
         public static void Init()
         {
             playerIdList = new();
             RitualCount = new();
             RitualTarget = new();
+            IsEnable = false;
         }
         public static void Add(byte playerId)
         {
             playerIdList.Add(playerId);
             RitualCount.TryAdd(playerId, RitualMaxCount.GetInt());
             RitualTarget.TryAdd(playerId, new());
+            IsEnable = true;
+
             var pc = Utils.GetPlayerById(playerId);
             pc.AddDoubleTrigger();
 
@@ -51,8 +55,6 @@ namespace TOHE.Roles.Neutral
                 if (!Main.ResetCamPlayerList.Contains(playerId))
                 Main.ResetCamPlayerList.Add(playerId);
         }
-
-        public static bool IsEnable => playerIdList.Any();
 
         private static void SendRPC(byte playerId, byte targetId)
         {

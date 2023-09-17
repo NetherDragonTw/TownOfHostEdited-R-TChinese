@@ -10,6 +10,8 @@ public static class Cleanser
 {
     private static readonly int Id = 23420;
     public static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
+
     public static Dictionary<byte,byte> CleanserTarget = new();
     public static Dictionary<byte, int> CleanserUses = new();
     public static List<byte> CleansedPlayers = new();
@@ -17,6 +19,7 @@ public static class Cleanser
 
     public static OptionItem CleanserUsesOpt;
     public static OptionItem CleansedCanGetAddon;
+    public static OptionItem AbilityUseGainWithEachTaskCompleted;
 
     public static void SetupCustomOption()
     {
@@ -24,6 +27,8 @@ public static class Cleanser
         CleanserUsesOpt = IntegerOptionItem.Create(Id + 10, "MaxCleanserUses", new(1, 14, 1), 3, TabGroup.CrewmateRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Cleanser])
             .SetValueFormat(OptionFormat.Times);
         CleansedCanGetAddon = BooleanOptionItem.Create(Id + 11, "CleansedCanGetAddon", false, TabGroup.CrewmateRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Cleanser]);
+    //    AbilityUseGainWithEachTaskCompleted = IntegerOptionItem.Create(Id + 12, "AbilityUseGainWithEachTaskCompleted", new(0, 5, 1), 1, TabGroup.CrewmateRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Cleanser])
+    //        .SetValueFormat(OptionFormat.Times);
 
     }
     public static void Init()
@@ -33,6 +38,7 @@ public static class Cleanser
         CleanserUses = new();
         CleansedPlayers = new();
         DidVote = new();
+        IsEnable = false;
     }
 
     public static void Add(byte playerId)
@@ -41,9 +47,8 @@ public static class Cleanser
         CleanserTarget.Add(playerId, byte.MaxValue);
         CleanserUses.Add(playerId, 0);
         DidVote.Add(playerId, false);
+        IsEnable = true;
     }
-
-    public static bool IsEnable => playerIdList.Any();
 
     //public static string GetProgressText(byte playerId) => Utils.ColorString(CleanserUsesOpt.GetInt() - CleanserUses[playerId] > 0 ? Utils.GetRoleColor(CustomRoles.Cleanser).ShadeColor(0.25f) : Color.gray, CleanserUses.TryGetValue(playerId, out var x) ? $"({CleanserUsesOpt.GetInt() - x})" : "Invalid");
     public static string GetProgressText(byte playerId)
@@ -96,7 +101,9 @@ public static class Cleanser
 
     public static void AfterMeetingTasks()
     {
-        foreach(var pid in CleanserTarget.Keys)
+        if (!IsEnable) return;
+
+        foreach (var pid in CleanserTarget.Keys)
         {
             DidVote[pid] = false;
             if (pid == byte.MaxValue) continue;
@@ -117,8 +124,5 @@ public static class Cleanser
 
         }
         Utils.MarkEveryoneDirtySettings();
-
-
     }
-
 }

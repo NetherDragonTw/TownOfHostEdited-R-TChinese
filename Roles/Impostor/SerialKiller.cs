@@ -9,6 +9,7 @@ public static class SerialKiller
 {
     private static readonly int Id = 1700;
     public static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
 
     private static OptionItem KillCooldown;
     private static OptionItem TimeLimit;
@@ -20,19 +21,20 @@ public static class SerialKiller
         Options.SetupRoleOptions(Id, TabGroup.ImpostorRoles, CustomRoles.SerialKiller);
         KillCooldown = FloatOptionItem.Create(Id + 10, "KillCooldown", new(0f, 180f, 2.5f), 20f, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.SerialKiller])
             .SetValueFormat(OptionFormat.Seconds);
-        TimeLimit = FloatOptionItem.Create(Id + 11, "SerialKillerLimit", new(5f, 999f, 5f), 60f, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.SerialKiller])
+        TimeLimit = FloatOptionItem.Create(Id + 11, "SerialKillerLimit", new(5f, 180f, 5f), 60f, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.SerialKiller])
             .SetValueFormat(OptionFormat.Seconds);
     }
     public static void Init()
     {
         playerIdList = new();
         SuicideTimer = new();
+        IsEnable = false;
     }
     public static void Add(byte serial)
     {
         playerIdList.Add(serial);
+        IsEnable = true;
     }
-    public static bool IsEnable => playerIdList.Any();
     public static void ApplyKillCooldown(byte id) => Main.AllPlayerKillCooldown[id] = KillCooldown.GetFloat();
     public static void ApplyGameOptions(PlayerControl pc)
     {
@@ -57,7 +59,9 @@ public static class SerialKiller
     }
     public static void FixedUpdate(PlayerControl player)
     {
-        if (!GameStates.IsInTask || !CustomRoles.SerialKiller.IsEnable()) return;
+        if (!IsEnable) return;
+        if (!GameStates.IsInTask) return;
+
         if (!HasKilled(player))
         {
             SuicideTimer.Remove(player.PlayerId);
@@ -85,6 +89,8 @@ public static class SerialKiller
     }
     public static void AfterMeetingTasks()
     {
+        if (!IsEnable) return;
+
         foreach (var id in playerIdList)
         {
             if (!Main.PlayerStates[id].IsDead)

@@ -23,6 +23,7 @@ public static class Poisoner
 
     private static readonly int Id = 12700;
     public static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
     private static OptionItem OptionKillDelay;
     private static float KillDelay;
     public static OptionItem CanVent;
@@ -30,31 +31,31 @@ public static class Poisoner
     private static readonly Dictionary<byte, PoisonedInfo> PoisonedPlayers = new();
     public static void SetupCustomOption()
     {
-        Options.SetupSingleRoleOptions(Id, TabGroup.NeutralRoles, CustomRoles.Poisoner, 1, zeroOne: false);
-        KillCooldown = FloatOptionItem.Create(Id + 10, "PoisonCooldown", new(0f, 180f, 2.5f), 20f, TabGroup.NeutralRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Poisoner])
+        Options.SetupSingleRoleOptions(Id, TabGroup.CovenRoles, CustomRoles.Poisoner, 1, zeroOne: false);
+        KillCooldown = FloatOptionItem.Create(Id + 10, "PoisonCooldown", new(0f, 180f, 2.5f), 20f, TabGroup.CovenRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Poisoner])
             .SetValueFormat(OptionFormat.Seconds);
-        OptionKillDelay = FloatOptionItem.Create(Id + 11, "PoisonerKillDelay", new(1f, 999f, 1f), 10f, TabGroup.NeutralRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Poisoner])
+        OptionKillDelay = FloatOptionItem.Create(Id + 11, "PoisonerKillDelay", new(1f, 60f, 1f), 10f, TabGroup.CovenRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Poisoner])
             .SetValueFormat(OptionFormat.Seconds);
-        CanVent = BooleanOptionItem.Create(Id + 12, "CanVent", true, TabGroup.NeutralRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Poisoner]);
+        CanVent = BooleanOptionItem.Create(Id + 12, "CanVent", true, TabGroup.CovenRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Poisoner]);
     }
 
     public static void Init()
     {
         playerIdList = new();
         PoisonedPlayers.Clear();
+        IsEnable = false;
 
         KillDelay = OptionKillDelay.GetFloat();
     }
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
+        IsEnable = true;
 
         if (!AmongUsClient.Instance.AmHost) return;
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-
-    public static bool IsEnable => playerIdList.Any();
     public static bool IsThisRole(byte playerId) => playerIdList.Contains(playerId);
     public static void SetKillCooldown(byte id) => Main.AllPlayerKillCooldown[id] = KillCooldown.GetFloat();
 
@@ -82,7 +83,8 @@ public static class Poisoner
 
     public static void OnFixedUpdate(PlayerControl poisoner)
     {
-        if (!AmongUsClient.Instance.AmHost || !GameStates.IsInTask) return;
+        if (!IsEnable) return;
+        if (!GameStates.IsInTask) return;
 
         var poisonerID = poisoner.PlayerId;
         if (!IsThisRole(poisoner.PlayerId)) return;
@@ -121,6 +123,7 @@ public static class Poisoner
                 if (target.Is(CustomRoles.Trapper))
                     poisoner.TrapperKilled(target);
                 poisoner.Notify(GetString("PoisonerTargetDead"));
+                poisoner.SetKillCooldown();
             }
         }
         else

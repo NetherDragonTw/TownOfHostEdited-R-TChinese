@@ -7,15 +7,19 @@ namespace TOHE.Roles.Neutral;
 public static class Collector
 {
     private static readonly int Id = 11100;
-    public static OptionItem CollectorCollectAmount;
     private static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
+
     public static Dictionary<byte, byte> CollectorVoteFor = new();
     public static Dictionary<byte, int> CollectVote = new();
     public static Dictionary<byte, int> NewVote = new();
+
+    public static OptionItem CollectorCollectAmount;
+
     public static void SetupCustomOption()
     {
         Options.SetupRoleOptions(Id, TabGroup.NeutralRoles, CustomRoles.Collector);
-        CollectorCollectAmount = IntegerOptionItem.Create(Id + 13, "CollectorCollectAmount", new(1, 999, 1), 20, TabGroup.NeutralRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Collector])
+        CollectorCollectAmount = IntegerOptionItem.Create(Id + 13, "CollectorCollectAmount", new(1, 100, 1), 20, TabGroup.NeutralRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Collector])
             .SetValueFormat(OptionFormat.Votes);
     }
     public static void Init()
@@ -23,13 +27,14 @@ public static class Collector
         playerIdList = new();
         CollectorVoteFor = new();
         CollectVote = new();
+        IsEnable = false;
     }
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
         CollectVote.TryAdd(playerId, 0);
+        IsEnable = true;
     }
-    public static bool IsEnable => playerIdList.Any();
     private static void SendRPC(byte playerId)
     {
         MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(PlayerControl.LocalPlayer.NetId, (byte)CustomRPC.SetCollectorVotes, SendOption.Reliable, -1);
@@ -53,7 +58,7 @@ public static class Collector
     public static bool CollectorWin(bool check = true)
     {
         var pc = Main.AllPlayerControls.Where(x => x.Is(CustomRoles.Collector) && x.IsAlive() && CollectDone(x));
-        if (pc.Count() > 0)
+        if (pc.Any())
         {
             if (check) return true;
             CustomWinnerHolder.ResetAndSetWinner(CustomWinner.Collector);

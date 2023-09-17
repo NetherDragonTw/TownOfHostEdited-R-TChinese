@@ -13,9 +13,11 @@ public static class Wraith
 {
     private static readonly int Id = 13300;
     private static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
 
     private static OptionItem WraithCooldown;
     private static OptionItem WraithDuration;
+    private static OptionItem WraithVentNormallyOnCooldown;
 
     private static Dictionary<byte, long> InvisTime = new();
     private static Dictionary<byte, long> lastTime = new();
@@ -23,11 +25,12 @@ public static class Wraith
 
     public static void SetupCustomOption()
     {
-        SetupSingleRoleOptions(Id, TabGroup.NeutralRoles, CustomRoles.Wraith, 1, zeroOne: false);        
-        WraithCooldown = FloatOptionItem.Create(Id + 2, "WraithCooldown", new(1f, 999f, 1f), 30f, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Wraith])
+        SetupSingleRoleOptions(Id, TabGroup.CovenRoles, CustomRoles.Wraith, 1, zeroOne: false);        
+        WraithCooldown = FloatOptionItem.Create(Id + 2, "WraithCooldown", new(1f, 180f, 1f), 30f, TabGroup.CovenRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Wraith])
             .SetValueFormat(OptionFormat.Seconds);
-        WraithDuration = FloatOptionItem.Create(Id + 4, "WraithDuration", new(1f, 999f, 1f), 15f, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Wraith])
+        WraithDuration = FloatOptionItem.Create(Id + 4, "WraithDuration", new(1f, 60f, 1f), 15f, TabGroup.CovenRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Wraith])
             .SetValueFormat(OptionFormat.Seconds);
+        WraithVentNormallyOnCooldown = BooleanOptionItem.Create(Id + 5, "WraithVentNormallyOnCooldown", true, TabGroup.CovenRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Wraith]);
     }
     public static void Init()
     {
@@ -35,17 +38,18 @@ public static class Wraith
         InvisTime = new();
         lastTime = new();
         ventedId = new();
+        IsEnable = false;
     }
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
+        IsEnable = true;
 
         if (!AmongUsClient.Instance.AmHost) return;
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
 
     }
-    public static bool IsEnable => playerIdList.Any();
     private static void SendRPC(PlayerControl pc)
     {
         if (pc.AmOwner) return;
@@ -70,6 +74,8 @@ public static class Wraith
     private static long lastFixedTime = 0;
     public static void AfterMeetingTasks()
     {
+        if (!IsEnable) return;
+
         lastTime = new();
         InvisTime = new();
         foreach (var pc in Main.AllAlivePlayerControls.Where(x => playerIdList.Contains(x.PlayerId)))
@@ -80,7 +86,8 @@ public static class Wraith
     }
     public static void OnFixedUpdate(PlayerControl player)
     {
-        if (!GameStates.IsInTask || !IsEnable) return;
+        if (!IsEnable) return;
+        if (!GameStates.IsInTask) return;
 
         var now = Utils.GetTimeStamp();
 
@@ -124,7 +131,7 @@ public static class Wraith
     {
         var pc = __instance.myPlayer;
         if (!AmongUsClient.Instance.AmHost || IsInvis(pc.PlayerId)) return;
-        new LateTask(() =>
+        _ = new LateTask(() =>
         {
             if (CanGoInvis(pc.PlayerId))
             {
@@ -141,13 +148,17 @@ public static class Wraith
             }
             else
             {
-                __instance.myPlayer.MyPhysics.RpcBootFromVent(ventId);
-                NameNotifyManager.Notify(pc, GetString("WraithInvisInCooldown"));
+                if (!WraithVentNormallyOnCooldown.GetBool())
+                {
+                    __instance.myPlayer.MyPhysics.RpcBootFromVent(ventId);
+                    NameNotifyManager.Notify(pc, GetString("WraithInvisInCooldown"));
+                }
             }
         }, 0.5f, "Wraith Vent");
     }
     public static void OnEnterVent(PlayerControl pc, Vent vent)
     {
+        if (!IsEnable) return;
         if (!pc.Is(CustomRoles.Wraith) || !IsInvis(pc.PlayerId)) return;
 
         InvisTime.Remove(pc.PlayerId);

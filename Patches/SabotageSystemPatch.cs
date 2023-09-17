@@ -33,6 +33,33 @@ public static class HeliSabotageSystemPatch
                 __instance.Countdown = Options.AirshipReactorTimeLimit.GetFloat();
     }
 }
+[HarmonyPatch(typeof(SwitchSystem), nameof(SwitchSystem.RepairDamage))]
+public static class SwitchSystemRepairDamagePatch
+{
+    public static bool Prefix(SwitchSystem __instance, [HarmonyArgument(1)] byte amount)
+    {
+        if (!AmongUsClient.Instance.AmHost) return true;
+
+        if (!amount.HasBit(SwitchSystem.DamageSystem) && Options.BlockDisturbancesToSwitches.GetBool())
+        {
+            // Shift 1 to the left by amount
+            // Each digit corresponds to each switch
+            // Far left switch - (amount: 0) 00001
+            // Far right switch - (amount: 4) 10000
+            // ref: SwitchSystem.RepairDamage, SwitchMinigame.FixedUpdate
+            var switchedKnob = (byte)(0b_00001 << amount);
+
+            // ExpectedSwitches: Up and down state of switches when all are on
+            // ActualSwitches: Actual up/down state of switch
+            // if Expected and Actual are the same for the operated knob, the knob is already fixed
+            if ((__instance.ActualSwitches & switchedKnob) == (__instance.ExpectedSwitches & switchedKnob))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+}
 [HarmonyPatch(typeof(ElectricTask), nameof(ElectricTask.Initialize))]
 public static class ElectricTaskInitializePatch
 {
@@ -40,7 +67,7 @@ public static class ElectricTaskInitializePatch
     {
         Utils.MarkEveryoneDirtySettings();
         if (!GameStates.IsMeeting)
-            Utils.NotifyRoles(ForceLoop: true);
+            Utils.NotifyRoles();
     }
 }
 [HarmonyPatch(typeof(ElectricTask), nameof(ElectricTask.Complete))]
@@ -50,6 +77,30 @@ public static class ElectricTaskCompletePatch
     {
         Utils.MarkEveryoneDirtySettings();
         if (!GameStates.IsMeeting)
-            Utils.NotifyRoles(ForceLoop: true);
+            Utils.NotifyRoles();
+    }
+}
+// https://github.com/tukasa0001/TownOfHost/blob/357f7b5523e4bdd0bb58cda1e0ff6cceaa84813d/Patches/SabotageSystemPatch.cs
+// Method called when sabotage occurs
+[HarmonyPatch(typeof(SabotageSystemType), nameof(SabotageSystemType.RepairDamage))]
+public static class SabotageSystemTypeRepairDamagePatch
+{
+    private static bool isCooldownModificationEnabled;
+    private static float modifiedCooldownSec;
+
+    public static void Initialize()
+    {
+        isCooldownModificationEnabled = Options.SabotageCooldownControl.GetBool();
+        modifiedCooldownSec = Options.SabotageCooldown.GetFloat();
+    }
+
+    public static void Postfix(SabotageSystemType __instance)
+    {
+        if (!isCooldownModificationEnabled || !AmongUsClient.Instance.AmHost)
+        {
+            return;
+        }
+        __instance.Timer = modifiedCooldownSec;
+        __instance.IsDirty = true;
     }
 }

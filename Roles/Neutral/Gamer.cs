@@ -1,7 +1,6 @@
 ﻿using AmongUs.GameOptions;
 using Hazel;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using static TOHE.Options;
 namespace TOHE.Roles.Neutral;
@@ -10,6 +9,7 @@ public static class Gamer
 {
     private static readonly int Id = 10600;
     public static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
 
     private static Dictionary<byte, int> PlayerHealth;
     private static Dictionary<byte, int> GamerHealth;
@@ -30,7 +30,7 @@ public static class Gamer
             .SetValueFormat(OptionFormat.Seconds);
         CanVent = BooleanOptionItem.Create(Id + 11, "CanVent", true, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Gamer]);
         HasImpostorVision = BooleanOptionItem.Create(Id + 13, "ImpostorVision", false, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Gamer]);
-        HealthMax = IntegerOptionItem.Create(Id + 15, "GamerHealthMax", new(5, 990, 5), 100, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Gamer])
+        HealthMax = IntegerOptionItem.Create(Id + 15, "GamerHealthMax", new(5, 200, 5), 100, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Gamer])
             .SetValueFormat(OptionFormat.Health);
         Damage = IntegerOptionItem.Create(Id + 16, "GamerDamage", new(1, 100, 1), 15, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Gamer])
             .SetValueFormat(OptionFormat.Health);
@@ -44,11 +44,14 @@ public static class Gamer
         playerIdList = new();
         GamerHealth = new();
         PlayerHealth = new();
+        IsEnable = false;
     }
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
+        IsEnable = true;
         GamerHealth.TryAdd(playerId, SelfHealthMax.GetInt());
+
         foreach (var pc in Main.AllAlivePlayerControls)
             PlayerHealth.TryAdd(pc.PlayerId, HealthMax.GetInt());
 
@@ -56,7 +59,6 @@ public static class Gamer
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-    public static bool IsEnable => playerIdList.Any();
     public static void SetKillCooldown(byte id) => Main.AllPlayerKillCooldown[id] = KillCooldown.GetFloat();
     public static void ApplyGameOptions(IGameOptions opt) => opt.SetVision(HasImpostorVision.GetBool());
     public static void CanUseVent(PlayerControl player)

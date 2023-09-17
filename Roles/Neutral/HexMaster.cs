@@ -26,6 +26,7 @@ public static class HexMaster
     private static Color RoleColorSpell = Utils.GetRoleColor(CustomRoles.Impostor);
 
     public static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
 
     public static Dictionary<byte, bool> HexMode = new();
     public static Dictionary<byte, List<byte>> HexedPlayer = new();
@@ -35,19 +36,21 @@ public static class HexMaster
     public static SwitchTrigger NowSwitchTrigger;
     public static void SetupCustomOption()
     {
-        SetupSingleRoleOptions(Id, TabGroup.NeutralRoles, CustomRoles.HexMaster, 1, zeroOne: false);        
-        ModeSwitchAction = StringOptionItem.Create(Id + 10, "WitchModeSwitchAction", SwitchTriggerText, 2, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.HexMaster]);
-        HexesLookLikeSpells = BooleanOptionItem.Create(Id + 11, "HexesLookLikeSpells",  false, TabGroup.NeutralRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.HexMaster]);
+        SetupSingleRoleOptions(Id, TabGroup.CovenRoles, CustomRoles.HexMaster, 1, zeroOne: false);        
+        ModeSwitchAction = StringOptionItem.Create(Id + 10, "WitchModeSwitchAction", SwitchTriggerText, 2, TabGroup.CovenRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.HexMaster]);
+        HexesLookLikeSpells = BooleanOptionItem.Create(Id + 11, "HexesLookLikeSpells",  false, TabGroup.CovenRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.HexMaster]);
     }
     public static void Init()
     {
         playerIdList = new();
         HexMode = new();
         HexedPlayer = new();
+        IsEnable = false;
     }
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
+        IsEnable = true;
         HexMode.Add(playerId, false);
         HexedPlayer.Add(playerId, new());
         NowSwitchTrigger = (SwitchTrigger)ModeSwitchAction.GetValue();
@@ -58,7 +61,6 @@ public static class HexMaster
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-    public static bool IsEnable => playerIdList.Any();
     private static void SendRPC(bool doHex, byte hexId, byte target = 255)
     {
         if (doHex)
@@ -126,10 +128,7 @@ public static class HexMaster
     {
         foreach (var hexmaster in playerIdList)
         {
-            if (HexedPlayer[hexmaster].Count != 0)
-            {
-                return true;
-            }
+            if (HexedPlayer[hexmaster].Count != 0) return true;
         }
         return false;
 
@@ -138,10 +137,7 @@ public static class HexMaster
     {
         foreach (var hexmaster in playerIdList)
         {
-            if (HexedPlayer[hexmaster].Contains(target))
-            {
-                return true;
-            }
+            if (HexedPlayer[hexmaster].Contains(target)) return true;
         }
         return false;
     }
@@ -166,8 +162,8 @@ public static class HexMaster
     public static bool OnCheckMurder(PlayerControl killer, PlayerControl target)
     {
         if (Medic.ProtectList.Contains(target.PlayerId)) return false;
-        if (target.Is(CustomRoles.Pestilence)) return true;
-        if (target.Is(CustomRoles.HexMaster)) return true;
+        if (target.Is(CustomRoles.Pestilence)) return false;
+        if (target.Is(CustomRoles.HexMaster)) return false;
         if (target.GetCustomRole().IsCoven()) return false;
 
         if (NowSwitchTrigger == SwitchTrigger.DoubleTrigger)
@@ -199,7 +195,7 @@ public static class HexMaster
         foreach (var pc in Main.AllAlivePlayerControls)
         {
             var dic = HexedPlayer.Where(x => x.Value.Contains(pc.PlayerId));
-            if (dic.Count() == 0) continue;
+            if (!dic.Any()) continue;
             var whichId = dic.FirstOrDefault().Key;
             var hexmaster = Utils.GetPlayerById(whichId);
             if (hexmaster != null && hexmaster.IsAlive())
@@ -221,7 +217,7 @@ public static class HexMaster
     public static string GetHexedMark(byte target, bool isMeeting)
     {
         
-        if (isMeeting && IsEnable && IsHexed(target))
+        if (isMeeting && IsHexed(target))
         {
             if (!HexesLookLikeSpells.GetBool())
             {
@@ -273,6 +269,7 @@ public static class HexMaster
     public static void OnEnterVent(PlayerControl pc)
     {
         if (!AmongUsClient.Instance.AmHost) return;
+        if (!IsEnable) return;
         if (playerIdList.Contains(pc.PlayerId))
         {
             if (NowSwitchTrigger is SwitchTrigger.Vent)

@@ -8,6 +8,7 @@ public static class Seeker
 {
     private static readonly int Id = 34000;
     private static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
 
     public static OptionItem PointsToWin;
     private static OptionItem TagCooldownOpt;
@@ -29,17 +30,19 @@ public static class Seeker
         DefaultSpeed = new();
         Targets = new();
         TotalPoints = new();
+        IsEnable = false;
     }
 
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
+        IsEnable = true;
 
         TotalPoints.Add(playerId, 0);
         DefaultSpeed = Main.AllPlayerSpeed[playerId];
 
         if (AmongUsClient.Instance.AmHost)
-            new LateTask(() =>
+            _ = new LateTask(() =>
             {
                 ResetTarget(Utils.GetPlayerById(playerId));
             }, 10f, "SeekerRound1");
@@ -48,8 +51,6 @@ public static class Seeker
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-
-    public static bool IsEnable => playerIdList.Any();
     public static void SetKillCooldown(byte id) => Main.AllPlayerKillCooldown[id] = TagCooldownOpt.GetFloat();
 
     private static void SendRPC(byte seekerId, byte targetId = 0xff, bool setTarget = true)
@@ -97,7 +98,7 @@ public static class Seeker
             TotalPoints[killer.PlayerId] -= 1;
         }
         killer.SyncSettings();  //IDK WHAT DOES THIS DO!!
-        killer.RpcGuardAndKill();
+        if (!Options.DisableShieldAnimations.GetBool()) killer.RpcGuardAndKill();
         SetKillCooldown(killer.PlayerId);
         SendRPC(killer.PlayerId, setTarget: false);
     }
@@ -113,6 +114,7 @@ public static class Seeker
 
     public static void FixedUpdate(PlayerControl player)
     {
+        if (!IsEnable) return;
         if (!player.Is(CustomRoles.Seeker)) return;
 
         if (GameStates.IsInTask)
@@ -145,7 +147,7 @@ public static class Seeker
         Main.AllPlayerSpeed[player.PlayerId] = Main.MinSpeed;
         ReportDeadBodyPatch.CanReport[player.PlayerId] = false;
         player.MarkDirtySettings();
-        new LateTask(() =>
+        _ = new LateTask(() =>
         {
             Main.AllPlayerSpeed[player.PlayerId] = DefaultSpeed;
             ReportDeadBodyPatch.CanReport[player.PlayerId] = true;

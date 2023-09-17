@@ -3,6 +3,7 @@ using Hazel;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using InnerNet;
 using System;
+
 namespace TOHE;
 
 public class CustomRpcSender
@@ -83,19 +84,15 @@ public class CustomRpcSender
         currentState = State.InRootMessage;
         return this;
     }
-    public CustomRpcSender EndMessage(int targetClientId = -1)
+    public CustomRpcSender EndMessage()
     {
         if (currentState != State.InRootMessage)
         {
             string errorMsg = $"Messageを終了しようとしましたが、StateがInRootMessageではありません (in: \"{name}\")";
             if (isUnsafe)
-            {
                 Logger.Warn(errorMsg, "CustomRpcSender.Warn");
-            }
             else
-            {
                 throw new InvalidOperationException(errorMsg);
-            }
         }
         stream.EndMessage();
 
@@ -115,13 +112,9 @@ public class CustomRpcSender
         {
             string errorMsg = $"RPCを開始しようとしましたが、StateがInRootMessageではありません (in: \"{name}\")";
             if (isUnsafe)
-            {
                 Logger.Warn(errorMsg, "CustomRpcSender.Warn");
-            }
             else
-            {
                 throw new InvalidOperationException(errorMsg);
-            }
         }
 
         stream.StartMessage(2);
@@ -137,13 +130,9 @@ public class CustomRpcSender
         {
             string errorMsg = $"RPCを終了しようとしましたが、StateがInRpcではありません (in: \"{name}\")";
             if (isUnsafe)
-            {
                 Logger.Warn(errorMsg, "CustomRpcSender.Warn");
-            }
             else
-            {
                 throw new InvalidOperationException(errorMsg);
-            }
         }
 
         stream.EndMessage();
@@ -161,13 +150,9 @@ public class CustomRpcSender
         {
             string errorMsg = $"RPCを自動で開始しようとしましたが、StateがReadyまたはInRootMessageではありません (in: \"{name}\")";
             if (isUnsafe)
-            {
                 Logger.Warn(errorMsg, "CustomRpcSender.Warn");
-            }
             else
-            {
                 throw new InvalidOperationException(errorMsg);
-            }
         }
         if (currentRpcTarget != targetClientId)
         {
@@ -186,13 +171,9 @@ public class CustomRpcSender
         {
             string errorMsg = $"RPCを送信しようとしましたが、StateがReadyではありません (in: \"{name}\")";
             if (isUnsafe)
-            {
                 Logger.Warn(errorMsg, "CustomRpcSender.Warn");
-            }
             else
-            {
                 throw new InvalidOperationException(errorMsg);
-            }
         }
 
         AmongUsClient.Instance.SendOrDisconnect(stream);
@@ -227,13 +208,9 @@ public class CustomRpcSender
         {
             string errorMsg = $"RPCを書き込もうとしましたが、StateがWrite(書き込み中)ではありません (in: \"{name}\")";
             if (isUnsafe)
-            {
                 Logger.Warn(errorMsg, "CustomRpcSender.Warn");
-            }
             else
-            {
                 throw new InvalidOperationException(errorMsg);
-            }
         }
         action(stream);
 

@@ -10,6 +10,7 @@ public static class BountyHunter
 {
     private static readonly int Id = 800;
     private static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
 
     private static OptionItem OptionTargetChangeTime;
     private static OptionItem OptionSuccessKillCooldown;
@@ -27,7 +28,7 @@ public static class BountyHunter
     public static void SetupCustomOption()
     {
         Options.SetupRoleOptions(Id, TabGroup.ImpostorRoles, CustomRoles.BountyHunter);
-        OptionTargetChangeTime = FloatOptionItem.Create(Id + 10, "BountyTargetChangeTime", new(10f, 900f, 2.5f), 60f, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.BountyHunter])
+        OptionTargetChangeTime = FloatOptionItem.Create(Id + 10, "BountyTargetChangeTime", new(10f, 180f, 2.5f), 60f, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.BountyHunter])
             .SetValueFormat(OptionFormat.Seconds);
         OptionSuccessKillCooldown = FloatOptionItem.Create(Id + 11, "BountySuccessKillCooldown", new(0f, 180f, 2.5f), 2.5f, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.BountyHunter])
             .SetValueFormat(OptionFormat.Seconds);
@@ -38,6 +39,7 @@ public static class BountyHunter
     public static void Init()
     {
         playerIdList = new();
+        IsEnable = false;
 
         Targets = new();
         ChangeTimer = new();
@@ -45,6 +47,7 @@ public static class BountyHunter
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
+        IsEnable = true;
 
         TargetChangeTime = OptionTargetChangeTime.GetFloat();
         SuccessKillCooldown = OptionSuccessKillCooldown.GetFloat();
@@ -54,7 +57,6 @@ public static class BountyHunter
         if (AmongUsClient.Instance.AmHost)
             ResetTarget(Utils.GetPlayerById(playerId));
     }
-    public static bool IsEnable => playerIdList.Any();
     private static void SendRPC(byte bountyId, byte targetId)
     {
         MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(PlayerControl.LocalPlayer.NetId, (byte)CustomRPC.SetBountyTarget, SendOption.Reliable, -1);
@@ -100,7 +102,8 @@ public static class BountyHunter
     }
     public static void FixedUpdate(PlayerControl player)
     {
-        if (!player.Is(CustomRoles.BountyHunter)) return; //以下、バウンティハンターのみ実行
+        if (!IsEnable) return;
+        if (!player.Is(CustomRoles.BountyHunter)) return;
 
         if (GameStates.IsInTask && ChangeTimer.ContainsKey(player.PlayerId))
         {
@@ -177,6 +180,8 @@ public static class BountyHunter
     public static void SetAbilityButtonText(HudManager __instance) => __instance.AbilityButton.OverrideText(GetString("BountyHunterChangeButtonText"));
     public static void AfterMeetingTasks()
     {
+        if (!IsEnable) return;
+
         foreach (var id in playerIdList)
         {
             if (!Main.PlayerStates[id].IsDead)

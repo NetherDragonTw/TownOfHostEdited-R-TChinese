@@ -1,5 +1,4 @@
 using AmongUs.Data;
-using HarmonyLib;
 using System.Collections.Generic;
 using TOHE.Roles.Impostor;
 
@@ -82,12 +81,27 @@ public static class Camouflage
 
         var oldIsCamouflage = IsCamouflage;
 
-        IsCamouflage = (Utils.IsActive(SystemTypes.Comms) && Options.CommsCamouflage.GetBool()) || Camouflager.IsActive;
+        IsCamouflage = (Utils.IsActive(SystemTypes.Comms) && Options.CommsCamouflage.GetBool()
+            && !(Options.DisableOnSomeMaps.GetBool() &&
+            ((Options.DisableOnSkeld.GetBool() && Options.IsActiveSkeld) ||
+             (Options.DisableOnMira.GetBool() && Options.IsActiveMiraHQ) ||
+             (Options.DisableOnPolus.GetBool() && Options.IsActivePolus) ||
+             (Options.DisableOnAirship.GetBool() && Options.IsActiveAirship)
+            )))
+            || Camouflager.IsActive;
 
         if (oldIsCamouflage != IsCamouflage)
         {
-            Main.AllPlayerControls.Do(pc => RpcSetSkin(pc));
-            Utils.NotifyRoles();
+            foreach (var pc in Main.AllPlayerControls)
+            {
+                RpcSetSkin(pc);
+
+                if (!IsCamouflage && !pc.IsAlive())
+                {
+                    pc.RpcRemovePet();
+                }
+            }
+            Utils.NotifyRoles(NoCache: true);
         }
     }
     public static void RpcSetSkin(PlayerControl target, bool ForceRevert = false, bool RevertToDefault = false)

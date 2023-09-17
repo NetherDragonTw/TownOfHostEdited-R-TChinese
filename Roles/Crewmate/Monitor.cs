@@ -12,6 +12,7 @@ internal class Monitor
 {
     private static readonly int Id = 2350;
     private static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
 
     private static OptionItem CanCheckCamera;
     public static OptionItem CanVent;
@@ -33,12 +34,13 @@ internal class Monitor
         IsVitalWatch = false;
         IsDoorLogWatch = false;
         IsCameraWatch = false;
+        IsEnable = false;
     }
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
+        IsEnable = true;
     }
-    public static bool IsEnable => playerIdList.Any();
 
     private static int Count = 0;
     public static void FixedUpdate()
@@ -53,7 +55,7 @@ internal class Monitor
             if (Pelican.IsEaten(pc.PlayerId) || pc.inVent) continue;
             try
             {
-                Vector2 PlayerPos = pc.GetTruePosition();
+                Vector2 PlayerPos = pc.transform.position;
 
                 switch (Main.NormalOptions.MapId)
                 {

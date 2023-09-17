@@ -13,9 +13,11 @@ public static class Swooper
 {
     private static readonly int Id = 4200;
     private static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
 
     private static OptionItem SwooperCooldown;
     private static OptionItem SwooperDuration;
+    private static OptionItem SwooperVentNormallyOnCooldown;
 
     private static Dictionary<byte, long> InvisTime = new();
     private static Dictionary<byte, long> lastTime = new();
@@ -24,10 +26,11 @@ public static class Swooper
     public static void SetupCustomOption()
     {
         SetupRoleOptions(Id, TabGroup.ImpostorRoles, CustomRoles.Swooper);
-        SwooperCooldown = FloatOptionItem.Create(Id + 2, "SwooperCooldown", new(1f, 999f, 1f), 30f, TabGroup.ImpostorRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Swooper])
+        SwooperCooldown = FloatOptionItem.Create(Id + 2, "SwooperCooldown", new(1f, 180f, 1f), 30f, TabGroup.ImpostorRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Swooper])
             .SetValueFormat(OptionFormat.Seconds);
-        SwooperDuration = FloatOptionItem.Create(Id + 4, "SwooperDuration", new(1f, 999f, 1f), 15f, TabGroup.ImpostorRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Swooper])
+        SwooperDuration = FloatOptionItem.Create(Id + 4, "SwooperDuration", new(1f, 60f, 1f), 15f, TabGroup.ImpostorRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Swooper])
             .SetValueFormat(OptionFormat.Seconds);
+        SwooperVentNormallyOnCooldown = BooleanOptionItem.Create(Id + 5, "SwooperVentNormallyOnCooldown", true, TabGroup.ImpostorRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Swooper]);
     }
     public static void Init()
     {
@@ -35,12 +38,13 @@ public static class Swooper
         InvisTime = new();
         lastTime = new();
         ventedId = new();
+        IsEnable = false;
     }
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
+        IsEnable = true;
     }
-    public static bool IsEnable => playerIdList.Any();
     private static void SendRPC(PlayerControl pc)
     {
         if (pc.AmOwner) return;
@@ -65,6 +69,8 @@ public static class Swooper
     private static long lastFixedTime = 0;
     public static void AfterMeetingTasks()
     {
+        if (!IsEnable) return;
+
         lastTime = new();
         InvisTime = new();
         foreach (var pc in Main.AllAlivePlayerControls.Where(x => playerIdList.Contains(x.PlayerId)))
@@ -75,7 +81,8 @@ public static class Swooper
     }
     public static void OnFixedUpdate(PlayerControl player)
     {
-        if (!GameStates.IsInTask || !IsEnable) return;
+        if (!IsEnable) return;
+        if (!GameStates.IsInTask) return;
 
         var now = Utils.GetTimeStamp();
 
@@ -119,7 +126,7 @@ public static class Swooper
     {
         var pc = __instance.myPlayer;
         if (!AmongUsClient.Instance.AmHost || IsInvis(pc.PlayerId)) return;
-        new LateTask(() =>
+        _ = new LateTask(() =>
         {
             if (CanGoInvis(pc.PlayerId))
             {
@@ -136,13 +143,17 @@ public static class Swooper
             }
             else
             {
-                __instance.myPlayer.MyPhysics.RpcBootFromVent(ventId);
-                NameNotifyManager.Notify(pc, GetString("SwooperInvisInCooldown"));
+                if (!SwooperVentNormallyOnCooldown.GetBool())
+                {
+                    __instance.myPlayer.MyPhysics.RpcBootFromVent(ventId);
+                    NameNotifyManager.Notify(pc, GetString("SwooperInvisInCooldown"));
+                }
             }
         }, 0.5f, "Swooper Vent");
     }
     public static void OnEnterVent(PlayerControl pc, Vent vent)
     {
+        if (!IsEnable) return;
         if (!pc.Is(CustomRoles.Swooper) || !IsInvis(pc.PlayerId)) return;
 
         InvisTime.Remove(pc.PlayerId);

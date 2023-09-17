@@ -13,6 +13,7 @@ namespace TOHE.Roles.Impostor
     {
         private static readonly int Id = 1100;
         public static List<byte> playerIdList = new();
+        public static bool IsEnable = false;
 
         public static Dictionary<byte, List<PlayerControl>> PlayersInDeathpact = new();
         public static Dictionary<byte, long> DeathpactTime = new();
@@ -55,15 +56,14 @@ namespace TOHE.Roles.Impostor
             PlayersInDeathpact = new();
             DeathpactTime = new();
             ActiveDeathpacts = new();
+            IsEnable = false;
         }
-
-        public static bool IsEnable => playerIdList.Any();
-
         public static void Add(byte playerId)
         {
             playerIdList.Add(playerId);
             PlayersInDeathpact.TryAdd(playerId, new List<PlayerControl>());
             DeathpactTime.TryAdd(playerId, 0);
+            IsEnable = true;
         }
 
         public static void ApplyGameOptions()
@@ -100,7 +100,7 @@ namespace TOHE.Roles.Impostor
             }
 
             pc.Notify(GetString("DeathpactComplete"));
-            DeathpactTime[pc.PlayerId] = Utils.GetTimeStamp() + (long)DeathpactDuration.GetInt();
+            DeathpactTime[pc.PlayerId] = GetTimeStamp() + (long)DeathpactDuration.GetInt();
             ActiveDeathpacts.Add(pc.PlayerId);
 
             foreach (var player in PlayersInDeathpact[pc.PlayerId])
@@ -134,10 +134,12 @@ namespace TOHE.Roles.Impostor
 
         public static void OnFixedUpdate(PlayerControl player)
         {
-            if (!IsEnable || !GameStates.IsInTask || !player.Is(CustomRoles.Deathpact)) return;
+            if (!IsEnable) return;
+            if (!GameStates.IsInTask || !player.Is(CustomRoles.Deathpact)) return;
             if (!ActiveDeathpacts.Contains(player.PlayerId)) return;
             if (CheckCancelDeathpact(player)) return;
-            if (DeathpactTime[player.PlayerId] < Utils.GetTimeStamp() && DeathpactTime[player.PlayerId] != 0)
+
+            if (DeathpactTime[player.PlayerId] < GetTimeStamp() && DeathpactTime[player.PlayerId] != 0)
             {
                 foreach (var playerInDeathpact in PlayersInDeathpact[player.PlayerId])
                 {
@@ -191,6 +193,7 @@ namespace TOHE.Roles.Impostor
 
         public static string GetDeathpactPlayerArrow(PlayerControl seer, PlayerControl target = null)
         {
+            if (!IsEnable) return "";
             if (GameStates.IsMeeting) return "";
             if (!ShowArrowsToOtherPlayersInPact.GetBool()) return "";
             if (target != null && seer.PlayerId != target.PlayerId) return "";

@@ -3,8 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TOHE.Roles.Crewmate;
+using TOHE.Roles.Impostor;
 using TOHE.Roles.Neutral;
 using UnityEngine;
+using static TOHE.Translator;
 
 namespace TOHE;
 
@@ -45,8 +47,6 @@ class RepairSystemPatch
 
         IsComms = PlayerControl.LocalPlayer.myTasks.ToArray().Any(x => x.TaskType == TaskTypes.FixComms);
 
-        if ((Options.CurrentGameMode == CustomGameMode.SoloKombat) && systemType == SystemTypes.Sabotage) return false;
-
         if (Options.DisableSabotage.GetBool() && systemType == SystemTypes.Sabotage) return false;
 
         if (Options.DisableCloseDoor.GetBool() && systemType == SystemTypes.Doors) return false;
@@ -73,26 +73,13 @@ class RepairSystemPatch
                     }
                 }
         
-        if (player.Is(CustomRoles.Werewolf) && player.IsAlive() && 
-            (systemType is
-            SystemTypes.Reactor or
-            SystemTypes.LifeSupp or
-            SystemTypes.Comms))
-                {
-                    return false;
-                }
-
-      /*if (player.Is(CustomRoles.Madmate) && !Options.MadmateCanFixSabotage.GetBool() && 
-            (systemType is
-            SystemTypes.Reactor or
-            SystemTypes.LifeSupp or
-            SystemTypes.Comms or
-            SystemTypes.Electrical))
-        { return false; }*/
-
-        //SabotageMaster
+        // Mechanic
         if (player.Is(CustomRoles.SabotageMaster))
             SabotageMaster.RepairSystem(__instance, systemType, amount);
+
+        // Repairman
+        if (player.Is(CustomRoles.Repairman))
+            Repairman.RepairSystem(__instance, systemType, amount);
 
         if (systemType == SystemTypes.Electrical && 0 <= amount && amount <= 4)
         {
@@ -106,6 +93,9 @@ class RepairSystemPatch
             }
         }
 
+        if (systemType == SystemTypes.Comms)
+            if (player.Is(CustomRoles.Camouflager) && !Camouflager.CanUseCommsSabotage.GetBool()) return false;
+
         if (systemType == SystemTypes.Sabotage && AmongUsClient.Instance.NetworkMode != NetworkModes.FreePlay)
         {
             if (player.Is(CustomRoleTypes.Impostor) && (player.IsAlive() || !Options.DeadImpCantSabotage.GetBool())) return true;
@@ -114,11 +104,11 @@ class RepairSystemPatch
             if (player.Is(CustomRoles.Traitor) && Traitor.CanUseSabotage.GetBool()) return true;
             if (player.Is(CustomRoles.Parasite) && player.IsAlive()) return true;
             if (player.Is(CustomRoles.PotionMaster) && player.IsAlive()) return true;
-            if (player.Is(CustomRoles.Werewolf) && player.IsAlive()) return true;
             if (player.Is(CustomRoles.Refugee) && player.IsAlive()) return true;
             if (player.Is(CustomRoles.Glitch) && player.IsAlive()) return true;
             return false;
         }
+
       /*if (systemType == SystemTypes.Doors && AmongUsClient.Instance.NetworkMode != NetworkModes.FreePlay)
         {
             if (player.Is(CustomRoleTypes.Impostor) && (player.IsAlive() || !Options.DeadImpCantSabotage.GetBool())) return true;
@@ -167,7 +157,7 @@ class CloseDoorsPatch
 {
     public static bool Prefix(ShipStatus __instance)
     {
-        return !(Options.DisableSabotage.GetBool() || Options.CurrentGameMode == CustomGameMode.SoloKombat);
+        return !(Options.DisableSabotage.GetBool());
     }
 }
 [HarmonyPatch(typeof(SwitchSystem), nameof(SwitchSystem.RepairDamage))]
@@ -177,6 +167,8 @@ class SwitchSystemRepairPatch
     {
         if (player.Is(CustomRoles.SabotageMaster))
             SabotageMaster.SwitchSystemRepair(__instance, amount);
+        if (player.Is(CustomRoles.Repairman))
+            Repairman.SwitchSystemRepair(__instance, amount);
     }
 }
 [HarmonyPatch(typeof(ShipStatus), nameof(ShipStatus.Start))]
@@ -185,11 +177,11 @@ class StartPatch
     public static void Postfix()
     {
         Logger.CurrentMethod();
-        Logger.Info("-----------游戏开始-----------", "Phase");
+        Logger.Info("-----------Start of game-----------", "Phase");
 
         Utils.CountAlivePlayers(true);
 
-        if (Options.AllowConsole.GetBool() || PlayerControl.LocalPlayer.FriendCode.GetDevUser().IsDev)
+        if (Options.AllowConsole.GetBool())
         {
             if (!BepInEx.ConsoleManager.ConsoleActive && BepInEx.ConsoleManager.ConsoleEnabled)
                 BepInEx.ConsoleManager.CreateConsole();
@@ -199,7 +191,7 @@ class StartPatch
             if (BepInEx.ConsoleManager.ConsoleActive && !DebugModeManager.AmDebugger)
             {
                 BepInEx.ConsoleManager.DetachConsole();
-                Logger.SendInGame("很抱歉，本房间禁止使用控制台，因此已将您的控制台关闭");
+                Logger.SendInGame(GetString("Warning.CanNotUseBepInExConsole"));
             }
         }
     }
@@ -228,7 +220,7 @@ class CheckTaskCompletionPatch
 {
     public static bool Prefix(ref bool __result)
     {
-        if (Options.DisableTaskWin.GetBool() || Options.NoGameEnd.GetBool() || TaskState.InitialTotalTasks == 0 || Options.CurrentGameMode == CustomGameMode.SoloKombat)
+        if (Options.DisableTaskWin.GetBool() || Options.NoGameEnd.GetBool() || TaskState.InitialTotalTasks == 0)
         {
             __result = false;
             return false;

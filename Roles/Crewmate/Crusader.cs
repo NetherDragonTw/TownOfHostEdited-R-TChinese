@@ -9,6 +9,8 @@ public static class Crusader
 {
     private static readonly int Id = 20050;
     private static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
+
     public static Dictionary<byte, int> CrusaderLimit = new();
     public static OptionItem SkillLimitOpt;
     public static OptionItem SkillCooldown;
@@ -17,9 +19,9 @@ public static class Crusader
     public static void SetupCustomOption()
     {
         Options.SetupRoleOptions(Id, TabGroup.CrewmateRoles, CustomRoles.Crusader);
-        SkillCooldown = FloatOptionItem.Create(Id + 10, "CrusaderSkillCooldown", new(2.5f, 900f, 2.5f), 20f, TabGroup.CrewmateRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Crusader])
+        SkillCooldown = FloatOptionItem.Create(Id + 10, "CrusaderSkillCooldown", new(2.5f, 180f, 2.5f), 20f, TabGroup.CrewmateRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Crusader])
             .SetValueFormat(OptionFormat.Seconds);
-        SkillLimitOpt = IntegerOptionItem.Create(Id + 11, "CrusaderSkillLimit", new(1, 990, 1), 5, TabGroup.CrewmateRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Crusader])
+        SkillLimitOpt = IntegerOptionItem.Create(Id + 11, "CrusaderSkillLimit", new(1, 15, 1), 5, TabGroup.CrewmateRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Crusader])
             .SetValueFormat(OptionFormat.Times);
     }
     public static void Init()
@@ -27,20 +29,19 @@ public static class Crusader
         playerIdList = new();
         CrusaderLimit = new();
         CurrentKillCooldown = new();
+        IsEnable = false;
     }
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
         CrusaderLimit.Add(playerId, SkillLimitOpt.GetInt());
         CurrentKillCooldown.Add(playerId, SkillCooldown.GetFloat());
-
+        IsEnable = true;
 
         if (!AmongUsClient.Instance.AmHost) return;
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-
-    public static bool IsEnable => playerIdList.Any();
 
     public static void ReceiveRPC(MessageReader reader)
     {
@@ -64,7 +65,7 @@ public static class Crusader
         CrusaderLimit[killer.PlayerId]--;
         killer.ResetKillCooldown();
         killer.SetKillCooldown();
-        killer.RpcGuardAndKill(target);
+        if (!Options.DisableShieldAnimations.GetBool()) killer.RpcGuardAndKill(target);
         target.RpcGuardAndKill(killer);
         return false;
     }

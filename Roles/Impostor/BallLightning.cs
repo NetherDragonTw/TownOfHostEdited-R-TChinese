@@ -12,6 +12,7 @@ public static class BallLightning
 {
     private static readonly int Id = 16700;
     public static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
 
     private static OptionItem KillCooldown;
     private static OptionItem ConvertTime;
@@ -33,12 +34,13 @@ public static class BallLightning
         playerIdList = new();
         GhostPlayer = new();
         RealKiller = new();
+        IsEnable = false;
     }
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
+        IsEnable = true;
     }
-    public static bool IsEnable => playerIdList.Any();
     private static void SendRPC(byte playerId)
     {
         MessageWriter writer = AmongUsClient.Instance.StartRpcImmediately(PlayerControl.LocalPlayer.NetId, (byte)CustomRPC.SetGhostPlayer, SendOption.Reliable, -1);
@@ -81,7 +83,7 @@ public static class BallLightning
     }
     private static void StartConvertCountDown(PlayerControl killer, PlayerControl target)
     {
-        new LateTask(() =>
+        _ = new LateTask(() =>
         {
             if (GameStates.IsInGame && GameStates.IsInTask && !GameStates.IsMeeting && target.IsAlive() && !Pelican.IsEaten(target.PlayerId))
             {
@@ -103,7 +105,9 @@ public static class BallLightning
     }
     public static void OnFixedUpdate()
     {
-        if (!IsEnable || !GameStates.IsInTask) return;
+        if (!IsEnable) return;
+        if (!GameStates.IsInTask) return;
+
         List<byte> deList = new();
         foreach (var ghost in GhostPlayer)
         {
@@ -129,7 +133,7 @@ public static class BallLightning
                 break;
             }
         }
-        if (deList.Count > 0)
+        if (deList.Any())
         {
             GhostPlayer.RemoveAll(deList.Contains);
             foreach (var gs in deList) SendRPC(gs);

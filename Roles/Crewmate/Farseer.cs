@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using AmongUs.GameOptions;
 using TOHE.Roles.Impostor;
 using TOHE.Roles.Neutral;
@@ -14,6 +14,7 @@ namespace TOHE.Roles.Crewmate
         private static readonly int Id = 9700;
 
         private static readonly string fontSize = "1.5";
+        public static bool IsEnable = false;
 
         public static OptionItem FarseerCooldown;
         public static OptionItem FarseerRevealTime;
@@ -26,6 +27,7 @@ namespace TOHE.Roles.Crewmate
             CustomRoles.Needy,
             CustomRoles.SuperStar,
             CustomRoles.CyberStar,
+            CustomRoles.TaskManager,
             CustomRoles.Mayor,
             CustomRoles.Paranoia,
             CustomRoles.Psychic,
@@ -45,6 +47,7 @@ namespace TOHE.Roles.Crewmate
             CustomRoles.Veteran,
             CustomRoles.Bodyguard,
             CustomRoles.Grenadier,
+            CustomRoles.Lighter,
             CustomRoles.Divinator,
             CustomRoles.Oracle,
             CustomRoles.Tracefinder,
@@ -66,15 +69,21 @@ namespace TOHE.Roles.Crewmate
         public static void SetupCustomOption()
         {
             SetupRoleOptions(Id, TabGroup.CrewmateRoles, CustomRoles.Farseer);
-            FarseerCooldown = FloatOptionItem.Create(Id + 10, "FarseerRevealCooldown", new(0f, 990f, 2.5f), 25f, TabGroup.CrewmateRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Farseer])
+            FarseerCooldown = FloatOptionItem.Create(Id + 10, "FarseerRevealCooldown", new(0f, 180f, 2.5f), 25f, TabGroup.CrewmateRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Farseer])
                 .SetValueFormat(OptionFormat.Seconds);
             FarseerRevealTime = FloatOptionItem.Create(Id + 11, "FarseerRevealTime", new(0f, 60f, 1f), 10f, TabGroup.CrewmateRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Farseer])
                 .SetValueFormat(OptionFormat.Seconds);
             Vision = FloatOptionItem.Create(Id + 12, "FarseerVision", new(0f, 5f, 0.05f), 0.25f, TabGroup.CrewmateRoles, false).SetParent(CustomRoleSpawnChances[CustomRoles.Farseer])
                 .SetValueFormat(OptionFormat.Multiplier);
         }
+        public static void Init()
+        {
+            IsEnable = false;
+        }
         public static void Add(byte playerId)
         {
+            IsEnable = true;
+
             if (!AmongUsClient.Instance.AmHost) return;
             if (!Main.ResetCamPlayerList.Contains(playerId))
                 Main.ResetCamPlayerList.Add(playerId);
@@ -84,6 +93,8 @@ namespace TOHE.Roles.Crewmate
 
         public static void OnPostFix(PlayerControl player)
         {
+            if (!IsEnable) return;
+
             if (GameStates.IsInTask && Main.FarseerTimer.ContainsKey(player.PlayerId))//アーソニストが誰かを塗っているとき
             {
                 if (!player.IsAlive() || Pelican.IsEaten(player.PlayerId))

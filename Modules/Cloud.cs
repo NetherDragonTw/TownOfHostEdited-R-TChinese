@@ -1,5 +1,4 @@
-﻿using AmongUs.Data;
-using HarmonyLib;
+﻿using HarmonyLib;
 using System;
 using System.IO;
 using System.Net.Sockets;
@@ -77,7 +76,7 @@ internal class Cloud
     {
         if (connecting || EacClientSocket != null && EacClientSocket.Connected) return;
         connecting = true;
-        new LateTask(() =>
+        _ = new LateTask(() =>
         {
             if (!AmongUsClient.Instance.AmHost || !GameData.Instance || AmongUsClient.Instance.NetworkMode == NetworkModes.LocalGame)
             {

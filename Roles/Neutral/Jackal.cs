@@ -13,6 +13,7 @@ public static class Jackal
 {
     private static readonly int Id = 12100;
     public static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
 
     public static OptionItem KillCooldown;
     public static OptionItem CanVent;
@@ -79,6 +80,7 @@ public static class Jackal
     {
         playerIdList = new();
         RecruitLimit = new();
+        IsEnable = false;
         ResetKillCooldownWhenSbGetKilled = OptionResetKillCooldownWhenSbGetKilled;
 
     }
@@ -86,12 +88,12 @@ public static class Jackal
     {
         playerIdList.Add(playerId);
         RecruitLimit.TryAdd(playerId, SidekickRecruitLimitOpt.GetInt());
+        IsEnable = true;
 
         if (!AmongUsClient.Instance.AmHost) return;
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-    public static bool IsEnable => playerIdList.Any();
 
     private static void SendRPC(byte playerId)
     {
@@ -153,13 +155,16 @@ public static class Jackal
                 SendRPC(killer.PlayerId);
                 target.RpcSetCustomRole(CustomRoles.Sidekick);
 
+                if (!Main.ResetCamPlayerList.Contains(target.PlayerId))
+                    Main.ResetCamPlayerList.Add(target.PlayerId);
+
                 killer.Notify(Utils.ColorString(Utils.GetRoleColor(CustomRoles.Jackal), GetString("GangsterSuccessfullyRecruited")));
                 target.Notify(Utils.ColorString(Utils.GetRoleColor(CustomRoles.Jackal), GetString("BeRecruitedByJackal")));
                 Utils.NotifyRoles();
 
                 killer.ResetKillCooldown();
                 killer.SetKillCooldown();
-                killer.RpcGuardAndKill(target);
+                if (!DisableShieldAnimations.GetBool()) killer.RpcGuardAndKill(target);
                 target.RpcGuardAndKill(killer);
                 target.RpcGuardAndKill(target);
 
@@ -186,7 +191,7 @@ public static class Jackal
 
                 killer.ResetKillCooldown();
                 killer.SetKillCooldown();
-                killer.RpcGuardAndKill(target);
+                if (!DisableShieldAnimations.GetBool()) killer.RpcGuardAndKill(target);
                 target.RpcGuardAndKill(killer);
                 target.RpcGuardAndKill(target);
 

@@ -65,7 +65,7 @@ public static class GameOptionsMenuPatch
         var gameTab = GameObject.Find("GameTab");
         List<GameObject> tabs = new() { gameTab, roleTab };
 
-        foreach (var tab in Enum.GetValues(typeof(TabGroup)))
+        foreach (var tab in EnumHelper.GetAllValues<TabGroup>())
         {
             var obj = gameSettings.transform.parent.Find(tab + "Tab");
             if (obj != null)
@@ -106,7 +106,7 @@ public static class GameOptionsMenuPatch
             var scOptions = new List<OptionBehaviour>();
             foreach (var option in OptionItem.AllOptions)
             {
-                if (option.Tab != (TabGroup)tab) continue;
+                if (option.Tab != tab) continue;
                 if (option.OptionBehaviour == null)
                 {
                     float yoffset = option.IsText ? 300f : 0f;
@@ -157,9 +157,9 @@ public static class GameOptionsMenuPatch
         for (var i = 0; i < tabs.Count; i++)
         {
             if (!Main.ModeForSmallScreen.Value)
-                tabs[i].transform.localPosition = new(0.7f * (i - 1) - tabs.Count / 3.25f, tabs[i].transform.localPosition.y, tabs[i].transform.localPosition.z);
+                tabs[i].transform.localPosition = new(0.65f * (i - 1) - tabs.Count / 3.23f, tabs[i].transform.localPosition.y, tabs[i].transform.localPosition.z);
             else
-                tabs[i].transform.localPosition = new(0.65f * (i - 1) - tabs.Count / 3f, tabs[i].transform.localPosition.y, tabs[i].transform.localPosition.z);
+                tabs[i].transform.localPosition = new(0.6f * (i - 1) - tabs.Count / 3.25f, tabs[i].transform.localPosition.y, tabs[i].transform.localPosition.z);
 
             var button = tabs[i].GetComponentInChildren<PassiveButton>();
             if (button == null) continue;
@@ -186,7 +186,7 @@ public class GameOptionsMenuUpdatePatch
     public static void Postfix(GameOptionsMenu __instance)
     {
         if (__instance.transform.parent.parent.name == "Game Settings") return;
-        foreach (var tab in Enum.GetValues(typeof(TabGroup)))
+        foreach (var tab in EnumHelper.GetAllValues<TabGroup>())
         {
             string tabcolor = "";
             tabcolor = tab switch
@@ -199,7 +199,7 @@ public class GameOptionsMenuUpdatePatch
                 TabGroup.NeutralRoles => "#7f8c8d",
                 TabGroup.Addons => "#ff9ace",
                 TabGroup.OtherRoles => "#76b8e0",
-          //      TabGroup.CovenRoles => "#663399",
+                TabGroup.CovenRoles => "#663399",
                 _ => "#ffffff",
             };
             if (__instance.transform.parent.parent.name != tab + "Tab") continue;
@@ -214,7 +214,7 @@ public class GameOptionsMenuUpdatePatch
 
             foreach (var option in OptionItem.AllOptions)
             {
-                if ((TabGroup)tab != option.Tab) continue;
+                if (tab != option.Tab) continue;
                 if (option?.OptionBehaviour == null || option.OptionBehaviour.gameObject == null) continue;
 
                 var enabled = true;
@@ -335,10 +335,9 @@ public class StringOptionIncreasePatch
         var option = OptionItem.AllOptions.FirstOrDefault(opt => opt.OptionBehaviour == __instance);
         if (option == null) return true;
 
-        option.SetValue(option.CurrentValue + 1);
+        option.SetValue(option.CurrentValue + (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) ? 5 : 1));
         return false;
     }
-    public static void Postfix(StringOption __instance) => OptionShower.GetText();
 }
 
 [HarmonyPatch(typeof(StringOption), nameof(StringOption.Decrease))]
@@ -349,10 +348,9 @@ public class StringOptionDecreasePatch
         var option = OptionItem.AllOptions.FirstOrDefault(opt => opt.OptionBehaviour == __instance);
         if (option == null) return true;
 
-        option.SetValue(option.CurrentValue - 1);
+        option.SetValue(option.CurrentValue - (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) ? 5 : 1));
         return false;
     }
-    public static void Postfix(StringOption __instance) => OptionShower.GetText();
 }
 
 [HarmonyPatch(typeof(PlayerControl), nameof(PlayerControl.RpcSyncSettings))]
@@ -416,17 +414,6 @@ public static class SetRecommendationsPatch
         __instance.roleOptions.SetRoleRecommended(RoleTypes.GuardianAngel);
         __instance.roleOptions.SetRoleRecommended(RoleTypes.Engineer);
 
-        if (Options.CurrentGameMode == CustomGameMode.SoloKombat) //SoloKombat
-        {
-            __instance.PlayerSpeedMod = 1.75f;
-            __instance.CrewLightMod = 1f;
-            __instance.ImpostorLightMod = 1f;
-            __instance.NumImpostors = 3;
-            __instance.NumCommonTasks = 0;
-            __instance.NumLongTasks = 0;
-            __instance.NumShortTasks = 0;
-            __instance.KillCooldown = 0f;
-        }
         return false;
     }
 }

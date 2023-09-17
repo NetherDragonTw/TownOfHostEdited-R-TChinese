@@ -9,14 +9,14 @@ namespace TOHE.Roles.Crewmate
     internal class Spiritualist
     {
         private static readonly int Id = 8100;
-
         private static List<byte> playerIdList = new();
-
-        public static OptionItem ShowGhostArrowEverySeconds;
-        public static OptionItem ShowGhostArrowForSeconds;
+        public static bool IsEnable = false;
 
         private static Dictionary<byte, long> ShowGhostArrowUntil = new();
         private static Dictionary<byte, long> LastGhostArrowShowTime = new();
+
+        public static OptionItem ShowGhostArrowEverySeconds;
+        public static OptionItem ShowGhostArrowForSeconds;
 
         public static byte SpiritualistTarget = new();
 
@@ -34,6 +34,7 @@ namespace TOHE.Roles.Crewmate
             SpiritualistTarget = new();
             LastGhostArrowShowTime = new();
             ShowGhostArrowUntil = new();
+            IsEnable = false;
         }
         public static void Add(byte playerId)
         {
@@ -41,8 +42,8 @@ namespace TOHE.Roles.Crewmate
             SpiritualistTarget = byte.MaxValue;
             LastGhostArrowShowTime.Add(playerId, 0);
             ShowGhostArrowUntil.Add(playerId, 0);
+            IsEnable = true;
         }
-        public static bool IsEnable => playerIdList.Any();
 
         private static bool ShowArrow(byte playerId)
         {
@@ -54,20 +55,14 @@ namespace TOHE.Roles.Crewmate
                 ShowGhostArrowUntil[playerId] = timestamp + (long)ShowGhostArrowForSeconds.GetFloat();
                 return true;
             }
-            else if (ShowGhostArrowUntil[playerId] >= timestamp)
-            {
-                return true;
-            }
+            else if (ShowGhostArrowUntil[playerId] >= timestamp) return true;
 
             return false;
         }
 
         public static void OnReportDeadBody(GameData.PlayerInfo target)
         {
-            if (target == null)
-            {
-                return;
-            }
+            if (target == null) return;
 
             if (SpiritualistTarget != byte.MaxValue)
                 RemoveTarget();
@@ -82,19 +77,15 @@ namespace TOHE.Roles.Crewmate
             foreach (var spiritualist in playerIdList)
             {
                 PlayerControl player = Main.AllPlayerControls.FirstOrDefault(a => a.PlayerId == spiritualist);
-                if (!player.IsAlive())
-                {
-                    continue;
-                }
+                
+                if (!player.IsAlive()) continue;
 
                 LastGhostArrowShowTime[spiritualist] = 0;
                 ShowGhostArrowUntil[spiritualist] = 0;
 
                 PlayerControl target = Main.AllPlayerControls.FirstOrDefault(a => a.PlayerId == SpiritualistTarget);
-                if (target == null)
-                {
-                    continue;
-                }
+                
+                if (target == null) continue;
 
                 TargetArrow.Add(spiritualist, target.PlayerId);
 

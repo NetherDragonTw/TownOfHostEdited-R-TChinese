@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using System.Collections.Generic;
 using static TOHE.Options;
 using static TOHE.Translator;
@@ -9,20 +9,20 @@ public static class CopyCat
 {
     private static readonly int Id = 31000;
     public static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
+
     public static Dictionary<byte, float> CurrentKillCooldown = new();
     public static Dictionary<byte, int> MiscopyLimit = new();
 
     public static OptionItem KillCooldown;
-
     public static OptionItem CopyCrewVar;
-
     public static OptionItem CanKill;
     public static OptionItem MiscopyLimitOpt;
 
     public static void SetupCustomOption()
     {
         SetupRoleOptions(Id, TabGroup.CrewmateRoles, CustomRoles.CopyCat);
-        KillCooldown = FloatOptionItem.Create(Id + 10, "CopyCatCopyCooldown", new(0f, 999f, 1f), 15f, TabGroup.CrewmateRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.CopyCat])
+        KillCooldown = FloatOptionItem.Create(Id + 10, "CopyCatCopyCooldown", new(0f, 180f, 1f), 15f, TabGroup.CrewmateRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.CopyCat])
             .SetValueFormat(OptionFormat.Seconds);
     //    CanKill = BooleanOptionItem.Create(Id + 11, "CopyCatCanKill", false, TabGroup.CrewmateRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.CopyCat]);
         CopyCrewVar = BooleanOptionItem.Create(Id+13, "CopyCrewVar",true,TabGroup.CrewmateRoles,false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.CopyCat]);        
@@ -35,20 +35,19 @@ public static class CopyCat
         playerIdList = new();
         CurrentKillCooldown = new();
         MiscopyLimit = new();
+        IsEnable = false;
     }
 
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
         CurrentKillCooldown.Add(playerId, KillCooldown.GetFloat());
-    //    MiscopyLimit.TryAdd(playerId, MiscopyLimitOpt.GetInt());
+        IsEnable = true;
 
         if (!AmongUsClient.Instance.AmHost) return;
         if (!Main.ResetCamPlayerList.Contains(playerId))
             Main.ResetCamPlayerList.Add(playerId);
     }
-
-    public static bool IsEnable => playerIdList.Any();
 
 
     /*  private static void SendRPC(byte playerId)
@@ -92,6 +91,12 @@ public static class CopyCat
                     Cleanser.CleanserTarget.Remove(pc.PlayerId);
                     Cleanser.CleanserUses.Remove(pc.PlayerId);
                     Cleanser.DidVote.Remove(pc.PlayerId);
+                    break;
+                case CustomRoles.Jailer:
+                    Jailer.JailerExeLimit.Remove(pc.PlayerId);
+                    Jailer.JailerTarget.Remove(pc.PlayerId);
+                    Jailer.JailerHasExe.Remove(pc.PlayerId);
+                    Jailer.JailerDidVote.Remove(pc.PlayerId);
                     break;
                 case CustomRoles.ParityCop:
                     ParityCop.MaxCheckLimit.Remove(player);
@@ -147,6 +152,15 @@ public static class CopyCat
                 case CustomRoles.Veteran:
                     Main.VeteranNumOfUsed.Remove(player);
                     break;
+                case CustomRoles.Grenadier:
+                    Main.GrenadierNumOfUsed.Remove(player);
+                    break;
+                case CustomRoles.Lighter:
+                    Main.LighterNumOfUsed.Remove(player);
+                    break;
+                case CustomRoles.TimeMaster:
+                    Main.TimeMasterNumOfUsed.Remove(player);
+                    break;
                 case CustomRoles.Judge:
                     Judge.TrialLimit.Remove(player);
                     break;
@@ -170,6 +184,7 @@ public static class CopyCat
         return role is CustomRoles.CopyCat or
             //bcoz of vent cd
             CustomRoles.Grenadier or
+            CustomRoles.Lighter or
             CustomRoles.DovesOfNeace or
             CustomRoles.Veteran or
             CustomRoles.Addict or
@@ -221,8 +236,23 @@ public static class CopyCat
                     Cleanser.CleanserUses.Add(pc.PlayerId, 0);
                     Cleanser.DidVote.Add(pc.PlayerId, false);
                     break;
+                case CustomRoles.Jailer:
+                    Jailer.JailerExeLimit.Add(pc.PlayerId, Jailer.MaxExecution.GetInt());
+                    Jailer.JailerTarget.Add(pc.PlayerId, byte.MaxValue);
+                    Jailer.JailerHasExe.Add(pc.PlayerId, false);
+                    Jailer.JailerDidVote.Add(pc.PlayerId, false);
+
+                    if (!AmongUsClient.Instance.AmHost) break;
+                    if (!Main.ResetCamPlayerList.Contains(pc.PlayerId))
+                        Main.ResetCamPlayerList.Add(pc.PlayerId);
+                    break;
                 case CustomRoles.Deputy:
                     Deputy.SetKillCooldown(pc.PlayerId);
+                    break;
+                case CustomRoles.Witness:
+                    if (!AmongUsClient.Instance.AmHost) break;
+                    if (!Main.ResetCamPlayerList.Contains(pc.PlayerId))
+                        Main.ResetCamPlayerList.Add(pc.PlayerId);
                     break;
                 case CustomRoles.ParityCop:
                     ParityCop.MaxCheckLimit.Add(pc.PlayerId, ParityCop.ParityCheckLimitMax.GetInt());

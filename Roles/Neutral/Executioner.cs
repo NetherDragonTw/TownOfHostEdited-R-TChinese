@@ -1,7 +1,6 @@
 using HarmonyLib;
 using Hazel;
 using System.Collections.Generic;
-using System.Linq;
 using static TOHE.Options;
 
 namespace TOHE.Roles.Neutral;
@@ -10,6 +9,7 @@ public static class Executioner
 {
     private static readonly int Id = 10700;
     public static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
     public static byte WinnerID;
 
     private static OptionItem CanTargetImpostor;
@@ -21,27 +21,22 @@ public static class Executioner
     public static OptionItem KnowTargetRole;
     public static OptionItem ChangeRolesAfterTargetKilled;
 
-
-    /// <summary>
-    /// Key: エクスキューショナーのPlayerId, Value: ターゲットのPlayerId
-    /// </summary>
     public static Dictionary<byte, byte> Target = new();
     public static readonly string[] ChangeRoles =
     {
         "Role.Crewmate",
-        "Role.Jester",
-        "Role.Opportunist",
-        "Role.Convict",
         "Role.Celebrity",
         "Role.Bodyguard",
         "Role.Dictator",
         "Role.Mayor",
         "Role.Doctor",
-     //   CustomRoles.Crewmate.ToString(), CustomRoles.Jester.ToString(), CustomRoles.Opportunist.ToString(),
+        "Role.Jester",
+        "Role.Opportunist",
+        "Role.Convict",
     };
     public static readonly CustomRoles[] CRoleChangeRoles =
     {
-        CustomRoles.CrewmateTOHE, CustomRoles.Jester, CustomRoles.Opportunist, CustomRoles.Convict, CustomRoles.CyberStar, CustomRoles.Bodyguard, CustomRoles.Dictator, CustomRoles.Mayor, CustomRoles.Doctor,
+        CustomRoles.CrewmateTOHE, CustomRoles.CyberStar, CustomRoles.Bodyguard, CustomRoles.Dictator, CustomRoles.Mayor, CustomRoles.Doctor, CustomRoles.Jester, CustomRoles.Opportunist, CustomRoles.Convict,
     };
 
     public static void SetupCustomOption()
@@ -60,10 +55,12 @@ public static class Executioner
     {
         playerIdList = new();
         Target = new();
+        IsEnable = false;
     }
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
+        IsEnable = true;
 
         //ターゲット割り当て
         if (AmongUsClient.Instance.AmHost)
@@ -90,7 +87,6 @@ public static class Executioner
             Logger.Info($"{Utils.GetPlayerById(playerId)?.GetNameWithRole()}:{SelectedTarget.GetNameWithRole()}", "Executioner");
         }
     }
-    public static bool IsEnable => playerIdList.Any();
     public static void SendRPC(byte executionerId, byte targetId = 0x73, string Progress = "")
     {
         MessageWriter writer;
@@ -148,40 +144,30 @@ public static class Executioner
         text = string.Format(text, Utils.ColorString(Utils.GetRoleColor(CRoleChangeRoles[ChangeRolesAfterTargetKilled.GetValue()]), Translator.GetString(CRoleChangeRoles[ChangeRolesAfterTargetKilled.GetValue()].ToString())));
         executioner.Notify(text);
     }
-        public static bool KnowRole(PlayerControl player, PlayerControl target)
+    public static bool KnowRole(PlayerControl player, PlayerControl target)
     {
         if (!KnowTargetRole.GetBool()) return false;
         return player.Is(CustomRoles.Executioner) && Target.TryGetValue(player.PlayerId, out var tar) && tar == target.PlayerId;
     }
-
     public static string TargetMark(PlayerControl seer, PlayerControl target)
     {
-        if (!seer.Is(CustomRoles.Executioner) || seer.Data.IsDead) return ""; //エクスキューショナー以外処理しない
+        if (!seer.Is(CustomRoles.Executioner) || seer.Data.IsDead) return "";
 
         var GetValue = Target.TryGetValue(seer.PlayerId, out var targetId);
         return GetValue && targetId == target.PlayerId ? Utils.ColorString(Utils.GetRoleColor(CustomRoles.Executioner), "♦") : "";
     }
-    public static bool CheckExileTarget(GameData.PlayerInfo exiled, bool DecidedWinner, bool Check = false)
+    public static void CheckExileTarget(GameData.PlayerInfo exiled, bool DecidedWinner)
     {
-        foreach (var kvp in Target.Where(x => x.Value == exiled.PlayerId))
+        foreach (var kvp in Target)
         {
             var executioner = Utils.GetPlayerById(kvp.Key);
-            if (executioner == null || !executioner.IsAlive() || executioner.Data.Disconnected) continue;
-            if (!Check) ExeWin(kvp.Key, DecidedWinner);
-            return true;
-        }
-        return false;
-    }
-    public static void ExeWin(byte playerId, bool DecidedWinner)
-    {
-        if (!DecidedWinner)
-        {
-            SendRPC(playerId, Progress: "WinCheck");
-        }
-        else
-        {
-            CustomWinnerHolder.AdditionalWinnerTeams.Add(AdditionalWinners.Executioner);
-            CustomWinnerHolder.WinnerIds.Add(playerId);
+            if (executioner == null) continue;
+            if (executioner.Data.IsDead || executioner.Data.Disconnected) continue;
+            if (kvp.Value == exiled.PlayerId && AmongUsClient.Instance.AmHost && !DecidedWinner)
+            {
+                SendRPC(kvp.Key, Progress: "WinCheck");
+                break; //脱ループ
+            }
         }
     }
 }

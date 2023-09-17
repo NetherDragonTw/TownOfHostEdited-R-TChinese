@@ -1,7 +1,9 @@
 using AmongUs.Data;
 using HarmonyLib;
 using System.Linq;
+
 using TOHE.Roles.Impostor;
+using TOHE.Roles.Crewmate;
 using TOHE.Roles.Neutral;
 
 namespace TOHE;
@@ -42,30 +44,31 @@ class ExileControllerWrapUpPatch
     }
     static void WrapUpPostfix(GameData.PlayerInfo exiled)
     {
-        if (AntiBlackout.OverrideExiledPlayer)
-        {
-            exiled = AntiBlackout_LastExiled;
-        }
+        if (AntiBlackout.ImpostorOverrideExiledPlayer || AntiBlackout.NeutralOverrideExiledPlayer) exiled = AntiBlackout_LastExiled;
 
         bool DecidedWinner = false;
-        if (!AmongUsClient.Instance.AmHost) return; //ホスト以外はこれ以降の処理を実行しません
+        if (!AmongUsClient.Instance.AmHost) return;
         AntiBlackout.RestoreIsDead(doSend: false);
-        if (!Collector.CollectorWin(false) && exiled != null) //判断集票者胜利
+
+        Logger.Info($"{!Collector.CollectorWin(false)}", "!Collector.CollectorWin(false)");
+        Logger.Info($"{exiled != null}", "exiled != null");
+        if (!Collector.CollectorWin(false) && exiled != null)
         {
-            //霊界用暗転バグ対処
-            if (!AntiBlackout.OverrideExiledPlayer && Main.ResetCamPlayerList.Contains(exiled.PlayerId))
+            // Deal with the darkening bug for the spirit world
+            if (!(AntiBlackout.ImpostorOverrideExiledPlayer || AntiBlackout.NeutralOverrideExiledPlayer) && Main.ResetCamPlayerList.Contains(exiled.PlayerId))
                 exiled.Object?.ResetPlayerCam(1f);
 
             exiled.IsDead = true;
             Main.PlayerStates[exiled.PlayerId].deathReason = PlayerState.DeathReason.Vote;
-                        var role = exiled.GetCustomRole();
+            
+            var role = exiled.GetCustomRole();
 
             //判断冤罪师胜利
             if (Main.AllPlayerControls.Any(x => x.Is(CustomRoles.Innocent) && !x.IsAlive() && x.GetRealKiller()?.PlayerId == exiled.PlayerId))
             {
                 if (!Options.InnocentCanWinByImp.GetBool() && role.IsImpostor())
                 {
-                    Logger.Info("冤罪的目标是内鬼，非常可惜啊", "Exeiled Winner Check");
+                    Logger.Info("Exeiled Winner Check", "Innocent");
                 }
                 else
                 {
@@ -76,24 +79,28 @@ class ExileControllerWrapUpPatch
                     DecidedWinner = true;
                 }
             }
-
-            //判断小丑胜利 (EAC封禁名单成为小丑达成胜利条件无法胜利)
-            if (role == CustomRoles.Jester)
+            if (role == CustomRoles.Jester && AmongUsClient.Instance.AmHost)
             {
-                if (DecidedWinner) CustomWinnerHolder.ShiftWinnerAndSetWinner(CustomWinner.Jester);
-                else CustomWinnerHolder.ResetAndSetWinner(CustomWinner.Jester);
+                CustomWinnerHolder.ResetAndSetWinner(CustomWinner.Jester);
                 CustomWinnerHolder.WinnerIds.Add(exiled.PlayerId);
+                foreach (var executioner in Executioner.playerIdList)
+                {
+                    var GetValue = Executioner.Target.TryGetValue(executioner, out var targetId);
+                    if (GetValue && exiled.PlayerId == targetId)
+                    {
+                        CustomWinnerHolder.AdditionalWinnerTeams.Add(AdditionalWinners.Executioner);
+                        CustomWinnerHolder.WinnerIds.Add(executioner);
+                    }
+                }
                 DecidedWinner = true;
             }
+            Executioner.CheckExileTarget(exiled, DecidedWinner);
 
-            //判断处刑人胜利
-            if (Executioner.CheckExileTarget(exiled, DecidedWinner)) DecidedWinner = true;
-            if (Lawyer.CheckExileTarget(exiled, DecidedWinner)) DecidedWinner = false;
-
-            //判断恐怖分子胜利
             if (role == CustomRoles.Terrorist) Utils.CheckTerroristWin(exiled);
 
             if (role == CustomRoles.Devourer) Devourer.OnDevourerDied(exiled.PlayerId);
+
+            if (Lawyer.CheckExileTarget(exiled, DecidedWinner)) DecidedWinner = false;
 
             if (CustomWinnerHolder.WinnerTeam != CustomWinner.Terrorist) Main.PlayerStates[exiled.PlayerId].SetDead();
         }
@@ -104,6 +111,20 @@ class ExileControllerWrapUpPatch
         HexMaster.RemoveHexedPlayer();
         Occultist.RemoveCursedPlayer();
 
+        if (Swapper.Vote.Count > 0 && Swapper.VoteTwo.Count > 0)
+        {
+            foreach (var swapper in Main.AllAlivePlayerControls)
+            {
+                if (swapper.Is(CustomRoles.Swapper))
+                {
+                    Swapper.Swappermax[swapper.PlayerId]--;
+                    Swapper.Vote.Clear();
+                    Swapper.VoteTwo.Clear();
+                    Main.SwapSend = false;
+                }
+            }
+        }
+        
         foreach (var pc in Main.AllPlayerControls)
         {
             pc.ResetKillCooldown();
@@ -129,85 +150,104 @@ class ExileControllerWrapUpPatch
                 CustomRoles.Dazzler or
                 CustomRoles.Devourer or
                 CustomRoles.Nuker or
+                CustomRoles.Assassin or
+                CustomRoles.Camouflager or
+                CustomRoles.Disperser or
+                CustomRoles.Escapee or
+                CustomRoles.Hacker or
+                CustomRoles.Hangman or
+                CustomRoles.ImperiusCurse or
+                CustomRoles.Miner or
+                CustomRoles.Morphling or
+                CustomRoles.Sniper or
+                CustomRoles.Warlock or
+                CustomRoles.Workaholic or
+                CustomRoles.Chameleon or
+                CustomRoles.Engineer or
+                CustomRoles.Grenadier or
+                CustomRoles.Scientist or
+                CustomRoles.Lighter or
+                CustomRoles.Pitfall or
+                CustomRoles.ScientistTOHE or
+                CustomRoles.Tracefinder or
+                CustomRoles.Doctor or
                 CustomRoles.Bomber
                 ) pc.RpcResetAbilityCooldown();
-            if (pc.Is(CustomRoles.Infected) && pc.IsAlive() && !CustomRoles.Infectious.RoleExist())
-            {
-                pc.RpcMurderPlayerV3(pc);
-                Main.PlayerStates[pc.PlayerId].deathReason = PlayerState.DeathReason.Suicide;
-            }
-            if (Main.ShroudList.ContainsKey(pc.PlayerId) && CustomRoles.Shroud.RoleExist())
-            {
-                pc.RpcMurderPlayerV3(pc);
-                Main.PlayerStates[pc.PlayerId].deathReason = PlayerState.DeathReason.Suicide;
-                Main.ShroudList.Clear();
 
-            }
-            if (pc.Is(CustomRoles.Werewolf) && pc.IsAlive())
+
+            if (Infectious.IsEnable)
             {
-                Main.AllPlayerKillCooldown[pc.PlayerId] = Werewolf.KillCooldown.GetFloat();
-            pc.RpcGuardAndKill(pc);
-            pc.SetKillCooldownV3();
-            } 
+                Infectious.MurderInfectedPlayers(pc);
+            }
+
+            if (Shroud.IsEnable)
+            {
+                Shroud.MurderShroudedPlayers(pc);
+            }
+
+            pc.RpcRemovePet();
+
+            if (Options.RandomSpawn.GetBool())
+            {
+                RandomSpawn.SpawnMap map;
+                switch (Main.NormalOptions.MapId)
+                {
+                    case 0:
+                        map = new RandomSpawn.SkeldSpawnMap();
+                        Main.AllPlayerControls.Do(map.RandomTeleport);
+                        break;
+                    case 1:
+                        map = new RandomSpawn.MiraHQSpawnMap();
+                        Main.AllPlayerControls.Do(map.RandomTeleport);
+                        break;
+                    case 2:
+                        map = new RandomSpawn.PolusSpawnMap();
+                        Main.AllPlayerControls.Do(map.RandomTeleport);
+                        break;
+                }
+            }
+
+            FallFromLadder.Reset();
+            Utils.CountAlivePlayers(true);
+            Utils.AfterMeetingTasks();
+            Utils.SyncAllSettings();
+            Utils.NotifyRoles();
         }
-
-        Main.ShroudList.Clear();
-
-        if (Options.RandomSpawn.GetBool() || Options.CurrentGameMode == CustomGameMode.SoloKombat)
-        {
-            RandomSpawn.SpawnMap map;
-            switch (Main.NormalOptions.MapId)
-            {
-                case 0:
-                    map = new RandomSpawn.SkeldSpawnMap();
-                    Main.AllPlayerControls.Do(map.RandomTeleport);
-                    break;
-                case 1:
-                    map = new RandomSpawn.MiraHQSpawnMap();
-                    Main.AllPlayerControls.Do(map.RandomTeleport);
-                    break;
-                case 2:
-                    map = new RandomSpawn.PolusSpawnMap();
-                    Main.AllPlayerControls.Do(map.RandomTeleport);
-                    break;
-            }
-        }
-        FallFromLadder.Reset();
-        Utils.CountAlivePlayers(true);
-        Utils.AfterMeetingTasks();
-        Utils.SyncAllSettings();
-        Utils.NotifyRoles();
     }
 
     static void WrapUpFinalizer(GameData.PlayerInfo exiled)
     {
-        //WrapUpPostfixで例外が発生しても、この部分だけは確実に実行されます。
+        // Even if an exception occurs in WrapUpPostfix, this is the only part that will be executed reliably.
         if (AmongUsClient.Instance.AmHost)
         {
-            new LateTask(() =>
+            _ = new LateTask(() =>
             {
                 exiled = AntiBlackout_LastExiled;
                 AntiBlackout.SendGameData();
-                if (AntiBlackout.OverrideExiledPlayer && // 追放対象が上書きされる状態 (上書きされない状態なら実行不要)
-                    exiled != null && //exiledがnullでない
-                    exiled.Object != null) //exiled.Objectがnullでない
+                if ((AntiBlackout.ImpostorOverrideExiledPlayer || AntiBlackout.NeutralOverrideExiledPlayer) && // State in which the expulsion target is overwritten (need not be executed if the expulsion target is not overwritten)
+                    exiled != null && // exiled is not null
+                    exiled.Object != null) //exiled.Object is not null
                 {
                     exiled.Object.RpcExileV2();
                 }
             }, 0.5f, "Restore IsDead Task");
-            new LateTask(() =>
+
+            _ = new LateTask(() =>
             {
                 Main.AfterMeetingDeathPlayers.Do(x =>
                 {
                     var player = Utils.GetPlayerById(x.Key);
-                    Logger.Info($"{player.GetNameWithRole()}を{x.Value}で死亡させました", "AfterMeetingDeath");
-                    Main.PlayerStates[x.Key].deathReason = x.Value;
-                    Main.PlayerStates[x.Key].SetDead();
+                    var state = Main.PlayerStates[x.Key];
+                    Logger.Info($"{player.GetNameWithRole()} died with {x.Value}", "AfterMeetingDeath");
+                    state.deathReason = x.Value;
+                    state.SetDead();
                     player?.RpcExileV2();
                     if (x.Value == PlayerState.DeathReason.Suicide)
                         player?.SetRealKiller(player, true);
                     if (Main.ResetCamPlayerList.Contains(x.Key))
                         player?.ResetPlayerCam(1f);
+                    if (Executioner.Target.ContainsValue(x.Key))
+                        Executioner.ChangeRoleByTarget(player);
                     Utils.AfterPlayerDeathTasks(player);
                 });
                 Main.AfterMeetingDeathPlayers.Clear();
@@ -217,15 +257,15 @@ class ExileControllerWrapUpPatch
         GameStates.AlreadyDied |= !Utils.IsAllAlive;
         RemoveDisableDevicesPatch.UpdateDisableDevices();
         SoundManager.Instance.ChangeAmbienceVolume(DataManager.Settings.Audio.AmbienceVolume);
-        Logger.Info("タスクフェイズ開始", "Phase");
+        Logger.Info("Start of Task Phase", "Phase");
     }
-}
 
-[HarmonyPatch(typeof(PbExileController), nameof(PbExileController.PlayerSpin))]
-class PolusExileHatFixPatch
-{
-    public static void Prefix(PbExileController __instance)
+    [HarmonyPatch(typeof(PbExileController), nameof(PbExileController.PlayerSpin))]
+    class PolusExileHatFixPatch
     {
-        __instance.Player.cosmetics.hat.transform.localPosition = new(-0.2f, 0.6f, 1.1f);
+        public static void Prefix(PbExileController __instance)
+        {
+            __instance.Player.cosmetics.hat.transform.localPosition = new(-0.2f, 0.6f, 1.1f);
+        }
     }
 }

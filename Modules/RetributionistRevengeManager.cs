@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 using Hazel;
-using Rewired.UI.ControlMapper;
 using System;
 using System.Linq;
 using TOHE.Modules;
@@ -111,7 +110,7 @@ public static class RetributionistRevengeManager
 
         CustomSoundsManager.RPCPlayCustomSoundAll("AWP");
 
-        new LateTask(() =>
+        _ = new LateTask(() =>
         {
             Main.PlayerStates[target.PlayerId].deathReason = PlayerState.DeathReason.Revenge;
             target.SetRealKiller(pc);
@@ -123,7 +122,7 @@ public static class RetributionistRevengeManager
                 //死者检查
                 Utils.AfterPlayerDeathTasks(target, true);
 
-                Utils.NotifyRoles(isForMeeting: false, NoCache: true);
+                Utils.NotifyRoles(isForMeeting: GameStates.IsMeeting, NoCache: true);
             }
             else
             {
@@ -131,7 +130,7 @@ public static class RetributionistRevengeManager
                 Main.PlayerStates[target.PlayerId].SetDead();
             }
 
-            new LateTask(() => { Utils.SendMessage(string.Format(GetString("RetributionistKillSucceed"), Name), 255, Utils.ColorString(Utils.GetRoleColor(CustomRoles.Retributionist), GetString("RetributionistRevengeTitle"))); }, 0.6f, "Retributionist Kill");
+            _ = new LateTask(() => { Utils.SendMessage(string.Format(GetString("RetributionistKillSucceed"), Name), 255, Utils.ColorString(Utils.GetRoleColor(CustomRoles.Retributionist), GetString("RetributionistRevengeTitle"))); }, 0.6f, "Retributionist Kill");
 
         }, 0.2f, "Retributionist Kill");
         return true;

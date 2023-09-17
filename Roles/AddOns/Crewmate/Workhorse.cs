@@ -1,5 +1,7 @@
-using System.Collections.Generic;
+using System;
+using System.Linq;
 using UnityEngine;
+using System.Collections.Generic;
 using static TOHE.Options;
 
 namespace TOHE.Roles.AddOns.Crewmate;
@@ -9,6 +11,7 @@ public static class Workhorse
     private static readonly int Id = 15700;
     public static Color RoleColor = Utils.GetRoleColor(CustomRoles.Workhorse);
     public static List<byte> playerIdList = new();
+    public static bool IsEnable = false;
 
     private static OptionItem OptionAssignOnlyToCrewmate;
     private static OptionItem OptionNumLongTasks;
@@ -31,6 +34,7 @@ public static class Workhorse
     public static void Init()
     {
         playerIdList = new();
+        IsEnable = false;
 
         AssignOnlyToCrewmate = OptionAssignOnlyToCrewmate.GetBool();
         NumLongTasks = OptionNumLongTasks.GetInt();
@@ -39,8 +43,8 @@ public static class Workhorse
     public static void Add(byte playerId)
     {
         playerIdList.Add(playerId);
+        IsEnable = true;
     }
-    public static bool IsEnable => playerIdList.Count > 0;
     public static bool IsThisRole(byte playerId) => playerIdList.Contains(playerId);
     public static (bool, int, int) TaskData => (false, NumLongTasks, NumShortTasks);
     private static bool IsAssignTarget(PlayerControl pc)
@@ -69,7 +73,7 @@ public static class Workhorse
         if (AmongUsClient.Instance.AmHost)
         {
             Add(pc.PlayerId);
-            GameData.Instance.RpcSetTasks(pc.PlayerId, new byte[0]); //タスクを再配布
+            GameData.Instance.RpcSetTasks(pc.PlayerId, Array.Empty<byte>()); //タスクを再配布
             pc.SyncSettings();
             Utils.NotifyRoles();
         }

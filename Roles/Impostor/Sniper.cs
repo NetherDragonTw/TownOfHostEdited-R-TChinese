@@ -13,6 +13,7 @@ public static class Sniper
 {
     private static readonly int Id = 1900;
     private static List<byte> PlayerIdList = new();
+    public static bool IsEnable = false;
 
     private static OptionItem SniperBulletCount;
     private static OptionItem SniperPrecisionShooting;
@@ -34,7 +35,7 @@ public static class Sniper
     public static void SetupCustomOption()
     {
         Options.SetupRoleOptions(Id, TabGroup.ImpostorRoles, CustomRoles.Sniper);
-        SniperBulletCount = IntegerOptionItem.Create(Id + 10, "SniperBulletCount", new(1, 99, 1), 2, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Sniper])
+        SniperBulletCount = IntegerOptionItem.Create(Id + 10, "SniperBulletCount", new(1, 20, 1), 2, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Sniper])
             .SetValueFormat(OptionFormat.Pieces);
         SniperPrecisionShooting = BooleanOptionItem.Create(Id + 11, "SniperPrecisionShooting", false, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Sniper]);
         SniperAimAssist = BooleanOptionItem.Create(Id + 12, "SniperAimAssist", true, TabGroup.ImpostorRoles, false).SetParent(Options.CustomRoleSpawnChances[CustomRoles.Sniper]);
@@ -55,6 +56,7 @@ public static class Sniper
         IsAim = new();
         AimTime = new();
         meetingReset = false;
+        IsEnable = false;
 
         maxBulletCount = SniperBulletCount.GetInt();
         precisionShooting = SniperPrecisionShooting.GetBool();
@@ -64,6 +66,7 @@ public static class Sniper
     public static void Add(byte playerId)
     {
         PlayerIdList.Add(playerId);
+        IsEnable = true;
 
         snipeBasePosition[playerId] = new();
         LastPosition[playerId] = new();
@@ -73,7 +76,6 @@ public static class Sniper
         IsAim[playerId] = false;
         AimTime[playerId] = 0f;
     }
-    public static bool IsEnable => PlayerIdList.Any();
     public static bool IsThisRole(byte playerId) => PlayerIdList.Contains(playerId);
     public static void SendRPC(byte playerId)
     {
@@ -227,7 +229,8 @@ public static class Sniper
             snipeTarget[sniperId] = snipedTarget.PlayerId;
             snipedTarget.CheckMurder(snipedTarget);
             //あたった通知
-            sniper.RpcGuardAndKill();
+            if (!Options.DisableShieldAnimations.GetBool()) sniper.RpcGuardAndKill();
+            else sniper.SetKillCooldown();
             snipeTarget[sniperId] = 0x7F;
 
             //スナイプが起きたことを聞こえそうな対象に通知したい
@@ -240,7 +243,7 @@ public static class Sniper
                 Utils.NotifyRoles(SpecifySeer: otherPc);
             }
             SendRPC(sniperId);
-            new LateTask(
+            _ = new LateTask(
                 () =>
                 {
                     snList.Clear();
@@ -306,6 +309,8 @@ public static class Sniper
     }
     public static string GetShotNotify(byte seerId)
     {
+        if (!IsEnable) return "";
+
         if (AimAssist && IsThisRole(seerId))
         {
             //エイムアシスト中のスナイパー
@@ -323,7 +328,7 @@ public static class Sniper
             foreach (var sniperId in PlayerIdList)
             {
                 var snList = shotNotify[sniperId];
-                if (snList.Count() > 0 && snList.Contains(seerId))
+                if (snList.Count > 0 && snList.Contains(seerId))
                 {
                     return $"<size=200%>{Utils.ColorString(Palette.ImpostorRed, "!")}</size>";
                 }
